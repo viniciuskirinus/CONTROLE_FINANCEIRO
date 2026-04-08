@@ -3,7 +3,7 @@ import { initTransaction } from './views/transaction.js';
 import { initStatement } from './views/statement.js';
 import { initReceipt } from './views/receipt.js';
 import { initSettings } from './views/settings.js';
-import { isWizardDone } from './modules/storage.js';
+import { checkFirstRun, startWizard } from './views/wizard.js';
 
 const VIEWS = {
   dashboard:   { init: initDashboard,   icon: '📊', label: 'Dashboard' },
@@ -47,7 +47,11 @@ export function showAlert(message, type = 'info') {
   }, 5000);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('wizard-complete', () => {
+  navigate('dashboard');
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
@@ -55,8 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  if (!isWizardDone()) {
-    navigate('settings');
+  const isFirstRun = await checkFirstRun();
+  if (isFirstRun) {
+    startWizard();
   } else {
     navigate('dashboard');
   }
