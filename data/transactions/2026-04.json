@@ -1,6 +1,20 @@
 {
   "_schema_version": 1,
   "month": "2026-04",
-  "lastId": 0,
-  "transactions": []
+  "lastId": 1,
+  "transactions": [
+    {
+      "amount": 1,
+      "category": "Alimentação",
+      "createdAt": "2026-04-08T18:44:56.813Z",
+      "date": "2026-04-08",
+      "description": "teste",
+      "notes": "",
+      "paymentMethod": "Pix",
+      "person": "vinicius",
+      "subcategory": "",
+      "type": "expense",
+      "id": 1
+    }
+  ]
 }
