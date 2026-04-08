@@ -10,9 +10,14 @@ function buildHeaders(pat) {
   };
 }
 
+export function isRepoConfigured() {
+  const { owner, repo, pat } = getRepoConfig();
+  return !!(owner && repo && pat);
+}
+
 export async function dispatch(eventType, data, target) {
   const { owner, repo, pat } = getRepoConfig();
-  if (!pat) throw new Error('PAT não configurado');
+  if (!pat) return { success: false, error: 'PAT não configurado. Vá em Config → Repositório para configurar.' };
 
   const resp = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/dispatches`,

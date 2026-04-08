@@ -101,17 +101,17 @@ function renderSummary(transactions) {
 }
 
 function renderDoughnutChart(transactions, categories) {
-  const canvas = document.getElementById('dash-doughnut-chart');
   const wrapper = document.getElementById('dash-doughnut-wrapper');
+  if (!wrapper) return;
   const expenses = transactions.filter(t => t.type === 'expense');
 
   if (!expenses.length) {
-    canvas.style.display = 'none';
     wrapper.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhuma despesa registrada</p></div>`;
     return;
   }
 
-  canvas.style.display = 'block';
+  wrapper.innerHTML = '<canvas id="dash-doughnut-chart"></canvas>';
+  const canvas = document.getElementById('dash-doughnut-chart');
 
   const catMap = new Map();
   const expenseCats = categories?.expense || [];
@@ -166,18 +166,18 @@ function renderDoughnutChart(transactions, categories) {
 }
 
 function renderBarChart(transactions, categories, config) {
-  const canvas = document.getElementById('dash-bar-chart');
   const wrapper = document.getElementById('dash-bar-wrapper');
+  if (!wrapper) return;
   const expenses = transactions.filter(t => t.type === 'expense');
   const expenseCats = categories?.expense || [];
 
-  if (!expenseCats.length) {
-    canvas.style.display = 'none';
-    wrapper.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhuma categoria disponível</p></div>`;
+  if (!expenseCats.length || !expenses.length) {
+    wrapper.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Sem dados para exibir</p></div>`;
     return;
   }
 
-  canvas.style.display = 'block';
+  wrapper.innerHTML = '<canvas id="dash-bar-chart"></canvas>';
+  const canvas = document.getElementById('dash-bar-chart');
 
   const grouped = {};
   expenses.forEach(t => {

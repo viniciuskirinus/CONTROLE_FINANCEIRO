@@ -4,6 +4,7 @@ import { initStatement } from './views/statement.js';
 import { initReceipt } from './views/receipt.js';
 import { initSettings } from './views/settings.js';
 import { checkFirstRun, startWizard } from './views/wizard.js';
+import { isRepoConfigured } from './modules/github-api.js';
 
 const VIEWS = {
   dashboard:   { init: initDashboard,   icon: '📊', label: 'Dashboard' },
@@ -62,5 +63,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     startWizard();
   } else {
     navigate('dashboard');
+    if (!isRepoConfigured()) {
+      showAlert('⚠️ Repositório GitHub não configurado. Vá em Config para conectar e poder salvar dados.', 'warning');
+    }
   }
 });
