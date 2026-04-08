@@ -23,7 +23,7 @@ export async function getPaymentMethods() {
 async function fetchJSON(url, cacheKey) {
   if (cache.has(cacheKey)) return cache.get(cacheKey);
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(url, { cache: 'no-cache' });
     if (!resp.ok) return null;
     const data = await resp.json();
     cache.set(cacheKey, data);
@@ -36,4 +36,8 @@ async function fetchJSON(url, cacheKey) {
 export function invalidateCache(key) {
   if (key) cache.delete(key);
   else cache.clear();
+}
+
+export function putCacheEntry(key, data) {
+  cache.set(key, data);
 }

@@ -16,8 +16,6 @@ const VIEWS = {
 let currentView = null;
 
 export function navigate(viewName) {
-  if (currentView === viewName) return;
-
   document.querySelectorAll('.view-section').forEach(s => s.hidden = true);
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
