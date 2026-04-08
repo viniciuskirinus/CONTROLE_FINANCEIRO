@@ -1,6 +1,6 @@
-/* Views — hidden by default, shown via JS */
+/* Views — controlled via HTML hidden attribute */
 .view-section {
-  display: none;
+  display: block;
 }
 
 .view-section[hidden] {
