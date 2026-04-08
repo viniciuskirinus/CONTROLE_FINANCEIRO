@@ -5,6 +5,8 @@ import { getState, setState, addPendingSync, resolvePendingSync } from '../modul
 import { showAlert } from '../app.js';
 import { isGeminiConfigured, suggestCategory } from '../modules/gemini.js';
 
+const SALARY_KEYWORDS = ['salário', 'salario', 'salary', 'holerite', 'pagamento mensal', 'remuneração', 'remuneracao', 'proventos'];
+
 export async function initTransaction() {
   const section = document.getElementById('view-transaction');
   section.innerHTML = '<div style="text-align:center;padding:var(--space-2xl)"><span class="spinner spinner-lg"></span></div>';
@@ -337,6 +339,15 @@ async function handleSubmit(section, config, categories, people, currentType) {
     showAlert('Transação registrada!', 'success');
     resetForm(section);
 
+    if (currentType === 'income' && amount > 0) {
+      const descLower = description.toLowerCase();
+      const catLower = category.toLowerCase();
+      const isSalary = SALARY_KEYWORDS.some(kw => descLower.includes(kw) || catLower.includes(kw));
+      if (isSalary) {
+        checkSalaryUpdate(config, person, amount);
+      }
+    }
+
     addPendingSync(tempId, 'create');
 
     const dispatchData = { ...txnData };
@@ -356,6 +367,28 @@ async function handleSubmit(section, config, categories, people, currentType) {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Registrar Transação';
   }
+}
+
+async function checkSalaryUpdate(config, personName, amount) {
+  if (!config?.people?.length) return;
+  const person = config.people.find(p => p.name === personName);
+  if (!person) return;
+  const currentSalary = person.salary || 0;
+  if (Math.abs(currentSalary - amount) < 0.01) return;
+
+  const msg = currentSalary > 0
+    ? `Salário detectado: ${formatCurrency(amount)}.\nAtualizar o salário de "${person.name}" (atual: ${formatCurrency(currentSalary)})?`
+    : `Salário detectado: ${formatCurrency(amount)}.\nDefinir como salário de "${person.name}"?`;
+  if (!confirm(msg)) return;
+
+  const people = config.people.map(p =>
+    p.name === personName ? { ...p, salary: amount } : p
+  );
+  const updatedConfig = { ...config, people };
+  putCacheEntry('config', updatedConfig);
+  dispatch('update-config', { ...updatedConfig, _schema_version: updatedConfig._schema_version || 1 }).then(r => {
+    if (r?.success) showAlert(`Salário atualizado para ${formatCurrency(amount)}!`, 'success');
+  }).catch(() => {});
 }
 
 function resetForm(section) {

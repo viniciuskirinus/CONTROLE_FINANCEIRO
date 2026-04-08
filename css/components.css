@@ -1,15 +1,11 @@
 /* Cards */
 .card {
   background: var(--color-card);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   padding: var(--space-lg);
   border: 1px solid var(--color-border);
-  transition: box-shadow var(--transition-fast);
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 /* Buttons */

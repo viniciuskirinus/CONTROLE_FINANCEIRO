@@ -740,12 +740,12 @@ function buildRepoContent(container) {
     }
     saveRepoConfig({ owner, repo: repoName, pat });
 
-    const repoGitData = { owner, name: repoName, configured: true };
+    const repoGitData = { owner, name: repoName, configured: true, pat };
     const updatedConfig = { ...state.config, repo: repoGitData };
     putCacheEntry('config', updatedConfig);
     state.config = updatedConfig;
 
-    showAlert('Configuração salva no navegador! Sincronizando com GitHub...', 'success');
+    showAlert('Configuração salva! Sincronizando com GitHub...', 'success');
     statusEl.innerHTML = '<div class="alert alert-success">✅ Salvo localmente!</div>';
 
     try {
@@ -767,9 +767,8 @@ function buildRepoContent(container) {
 
   const helpText = el('div', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-md)', lineHeight: '1.6' } });
   helpText.append(
-    el('p', {}, '🔒 O PAT é armazenado apenas no navegador (localStorage) por segurança.'),
-    el('p', {}, '📦 Owner e nome do repositório são salvos também no config.json do GitHub, então sobrevivem à limpeza de dados do navegador.'),
-    el('p', {}, '⚠️ Após limpar dados do navegador, você só precisa re-inserir o PAT.')
+    el('p', {}, '📦 Tudo (owner, repo e PAT) é salvo no config.json do GitHub.'),
+    el('p', {}, '✅ Ao limpar dados do navegador, tudo será restaurado automaticamente.')
   );
   container.append(helpText);
 }
@@ -840,13 +839,13 @@ function buildGeminiContent(container) {
       const val = inp?.value.trim();
       const selModel = document.getElementById('gemini-model-select')?.value;
       saveGeminiKey(val);
-      if (selModel) {
-        saveGeminiModel(selModel);
-        const updatedConfig = { ...state.config, geminiModel: selModel };
-        putCacheEntry('config', updatedConfig);
-        state.config = updatedConfig;
-        dispatch('update-config', { ...updatedConfig, _schema_version: updatedConfig._schema_version || 1 }).catch(() => {});
-      }
+      if (selModel) saveGeminiModel(selModel);
+
+      const updatedConfig = { ...state.config, geminiModel: selModel || undefined, geminiKey: val || undefined };
+      putCacheEntry('config', updatedConfig);
+      state.config = updatedConfig;
+      dispatch('update-config', { ...updatedConfig, _schema_version: updatedConfig._schema_version || 1 }).catch(() => {});
+
       showAlert(val ? 'Chave e modelo salvos!' : 'Chave removida.', 'success');
       render();
     }
@@ -900,7 +899,7 @@ function buildGeminiContent(container) {
     style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-lg)', lineHeight: '1.5' }
   });
   infoText.append(
-    document.createTextNode('A chave é armazenada apenas no navegador (localStorage). Obtenha sua chave em: '),
+    document.createTextNode('📦 Chave e modelo são salvos no config.json do GitHub. Obtenha sua chave em: '),
     el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', style: { color: 'var(--color-secondary)' } }, 'aistudio.google.com')
   );
   container.append(infoText);

@@ -14,9 +14,10 @@
   /* Superfícies */
   --color-bg: #f5f7ff;
   --color-card: #ffffff;
-  --color-text: #37474f;
-  --color-text-secondary: #78909c;
-  --color-border: #c5cae9;
+  --color-surface-hover: #eef1fb;
+  --color-text: #263238;
+  --color-text-secondary: #607d8b;
+  --color-border: #dde1f2;
 
   /* Alert backgrounds */
   --color-alert-success-bg: #e8f5e9;
@@ -30,18 +31,20 @@
   --radius: 8px;
   --radius-lg: 12px;
 
-  /* Tipografia (D-15) */
-  --font-family: 'Inter', Arial, sans-serif;
+  /* Tipografia */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-xs: 11px;
   --font-size-base: 14px;
   --font-size-sm: 12px;
   --font-size-lg: 16px;
   --font-size-xl: 20px;
-  --font-size-2xl: 24px;
+  --font-size-2xl: 26px;
+  --font-size-3xl: 32px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
 
   /* Transitions */
   --transition-fast: 150ms ease;

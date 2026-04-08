@@ -135,7 +135,8 @@ function handleUpdateConfig(newConfig) {
   const filePath = 'data/config.json';
   const file = readJSONFile(filePath) || { _schema_version: 1 };
 
-  Object.assign(file, newConfig);
+  const { _savedAt, ...cleanConfig } = newConfig;
+  Object.assign(file, cleanConfig);
   file._schema_version = 1;
   file.updatedAt = new Date().toISOString();
 

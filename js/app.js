@@ -7,7 +7,7 @@ import { checkFirstRun, startWizard } from './views/wizard.js';
 import { isRepoConfigured } from './modules/github-api.js';
 import { getRepoConfig, saveRepoConfig } from './modules/storage.js';
 import { getConfig } from './modules/data-service.js';
-import { saveGeminiModel } from './modules/gemini.js';
+import { saveGeminiModel, saveGeminiKey, getGeminiKey } from './modules/gemini.js';
 
 const VIEWS = {
   dashboard:   { init: initDashboard,   icon: '📊', label: 'Dashboard' },
@@ -51,21 +51,26 @@ export function showAlert(message, type = 'info') {
 
 async function restoreConfigFromGit() {
   const existing = getRepoConfig();
-  if (existing.owner && existing.repo) return;
+  const hasRepo = existing.owner && existing.repo;
+  const hasPat = !!existing.pat;
+  const hasGeminiKey = !!getGeminiKey();
+
+  if (hasRepo && hasPat && hasGeminiKey) return;
 
   try {
     const config = await getConfig();
-    if (config?.repo?.owner && config?.repo?.name) {
+    if (!config) return;
+
+    if (config.repo?.owner && config.repo?.name) {
       saveRepoConfig({
         owner: config.repo.owner,
         repo: config.repo.name,
-        pat: existing.pat || ''
+        pat: existing.pat || config.repo.pat || ''
       });
       console.log('[app] repo config restaurado do config.json');
     }
-    if (config?.geminiModel) {
-      saveGeminiModel(config.geminiModel);
-    }
+    if (config.geminiModel) saveGeminiModel(config.geminiModel);
+    if (config.geminiKey && !hasGeminiKey) saveGeminiKey(config.geminiKey);
   } catch { /* config.json não disponível */ }
 }
 

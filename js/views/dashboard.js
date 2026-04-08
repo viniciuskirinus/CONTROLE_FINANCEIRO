@@ -37,40 +37,40 @@ function destroyCharts() {
 
 function buildLayout(section, people) {
   section.innerHTML = `
-    <div class="section-header">
-      <h2>📊 Dashboard</h2>
-    </div>
-
-    <div class="filter-bar">
-      <div style="display:flex;align-items:center;gap:var(--space-sm)">
-        <button class="btn btn-ghost" id="dash-prev-month" aria-label="Mês anterior">◀</button>
-        <span id="dash-month-label" style="font-weight:700;min-width:160px;text-align:center;font-size:var(--font-size-lg)"></span>
-        <button class="btn btn-ghost" id="dash-next-month" aria-label="Próximo mês">▶</button>
+    <div class="dash-header">
+      <h2>Dashboard</h2>
+      <div class="dash-controls">
+        <div class="dash-month-nav">
+          <button class="btn btn-ghost" id="dash-prev-month" aria-label="Mês anterior">◀</button>
+          <span id="dash-month-label" class="dash-month-text"></span>
+          <button class="btn btn-ghost" id="dash-next-month" aria-label="Próximo mês">▶</button>
+        </div>
+        <select class="form-select" id="dash-person-filter" style="min-width:120px">
+          <option value="all">Todos</option>
+          ${people.map(p => `<option value="${p.name}">${p.name.charAt(0).toUpperCase() + p.name.slice(1)}</option>`).join('')}
+        </select>
       </div>
-      <select class="form-select" id="dash-person-filter">
-        <option value="all">Todos</option>
-        ${people.map(p => `<option value="${p.name}">${p.name.charAt(0).toUpperCase() + p.name.slice(1)}</option>`).join('')}
-      </select>
     </div>
 
-    <div id="dash-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-md);margin-bottom:var(--space-lg)"></div>
+    <div id="dash-summary" class="dash-summary-grid"></div>
+    <div id="dash-budget-progress"></div>
 
-    <div id="dash-charts" style="display:flex;gap:var(--space-lg);margin-bottom:var(--space-lg);flex-wrap:wrap">
-      <div class="card" style="flex:1;min-width:280px">
-        <h3 style="margin:0 0 var(--space-md)">Despesas por Categoria</h3>
-        <div id="dash-doughnut-wrapper" style="position:relative;max-height:320px;display:flex;align-items:center;justify-content:center">
+    <div class="dash-charts-row">
+      <div class="card dash-chart-card">
+        <h3>Despesas por Categoria</h3>
+        <div id="dash-doughnut-wrapper" class="dash-chart-wrapper">
           <canvas id="dash-doughnut-chart"></canvas>
         </div>
       </div>
-      <div class="card" style="flex:1;min-width:280px">
-        <h3 style="margin:0 0 var(--space-md)">Orçado vs Realizado</h3>
-        <div id="dash-bar-wrapper" style="position:relative;max-height:320px">
+      <div class="card dash-chart-card">
+        <h3>Orçado vs Realizado</h3>
+        <div id="dash-bar-wrapper" class="dash-chart-wrapper">
           <canvas id="dash-bar-chart"></canvas>
         </div>
       </div>
     </div>
 
-    <div class="card" id="dash-recent" style="margin-bottom:var(--space-lg)">
+    <div class="card" id="dash-recent">
       <h3 style="margin:0 0 var(--space-md)">Últimas Transações</h3>
       <div id="dash-recent-list"></div>
     </div>
@@ -82,50 +82,106 @@ function renderSummary(transactions, config) {
   const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
-  const balanceColor = balance >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
   const person = currentPerson === 'all'
     ? config?.people?.[0]
     : config?.people?.find(p => p.name === currentPerson);
   const salary = person?.salary || 0;
-  const goal = person?.monthlyGoal || 0;
-  const available = salary - expense;
-  const availableColor = available >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+  const available = salary > 0 ? salary - expense : balance;
+  const personLabel = currentPerson === 'all' && config?.people?.length > 1 ? ` (${person?.name || ''})` : '';
 
-  let salaryCards = '';
+  let html = '';
+
   if (salary > 0) {
-    const pctUsed = salary > 0 ? Math.min((expense / salary) * 100, 100) : 0;
-    const barColor = pctUsed > 90 ? 'var(--color-expense)' : pctUsed > 70 ? 'var(--color-warning)' : 'var(--color-income)';
-    salaryCards = `
-      <div class="card" style="border-left:4px solid var(--color-secondary)">
-        <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">💼 Salário${currentPerson !== 'all' ? '' : ` (${person?.name || ''})`}</div>
-        <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--color-secondary)">${formatCurrency(salary)}</div>
-        <div style="margin-top:var(--space-sm);background:var(--color-surface-hover);border-radius:4px;height:6px;overflow:hidden">
-          <div style="width:${pctUsed}%;height:100%;background:${barColor};border-radius:4px;transition:width 0.3s"></div>
+    const pctUsed = Math.min((expense / salary) * 100, 100);
+    const barClass = pctUsed > 90 ? 'over' : pctUsed > 70 ? 'warning' : 'under';
+    html += `
+      <div class="summary-card summary-card--salary">
+        <div class="summary-card__label">💼 Salário${personLabel}</div>
+        <div class="summary-card__value">${formatCurrency(salary)}</div>
+        <div class="summary-card__bar">
+          <div class="summary-card__bar-fill budget-bar-fill ${barClass}" style="width:${pctUsed}%"></div>
         </div>
-        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:2px">${pctUsed.toFixed(0)}% usado</div>
+        <div class="summary-card__hint">${pctUsed.toFixed(0)}% comprometido</div>
       </div>
-      <div class="card" style="border-left:4px solid ${availableColor}">
-        <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">💰 Disponível</div>
-        <div style="font-size:var(--font-size-2xl);font-weight:700;color:${availableColor}">${formatCurrency(available)}</div>
-        ${goal > 0 ? `<div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:var(--space-xs)">🎯 Meta: ${formatCurrency(goal)}</div>` : ''}
+      <div class="summary-card summary-card--${available >= 0 ? 'positive' : 'negative'}">
+        <div class="summary-card__label">🏦 Disponível</div>
+        <div class="summary-card__value">${formatCurrency(available)}</div>
+        ${person?.monthlyGoal > 0 ? `<div class="summary-card__hint">Meta: ${formatCurrency(person.monthlyGoal)}</div>` : ''}
       </div>
     `;
   }
 
+  html += `
+    <div class="summary-card summary-card--income">
+      <div class="summary-card__label">📈 Receitas</div>
+      <div class="summary-card__value">${formatCurrency(income)}</div>
+    </div>
+    <div class="summary-card summary-card--expense">
+      <div class="summary-card__label">📉 Despesas</div>
+      <div class="summary-card__value">${formatCurrency(expense)}</div>
+    </div>
+    <div class="summary-card summary-card--${balance >= 0 ? 'positive' : 'negative'}">
+      <div class="summary-card__label">💰 Saldo</div>
+      <div class="summary-card__value">${formatCurrency(balance)}</div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function renderBudgetProgress(transactions, categories, config) {
+  const container = document.getElementById('dash-budget-progress');
+  if (!container) return;
+
+  const personName = currentPerson === 'all'
+    ? config?.people?.[0]?.name
+    : currentPerson;
+  const budgets = config?.budgets?.[personName];
+
+  if (!budgets || Object.keys(budgets).length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const expenses = transactions.filter(t => t.type === 'expense');
+  const grouped = {};
+  expenses.forEach(t => { grouped[t.category] = (grouped[t.category] || 0) + t.amount; });
+
+  const expenseCats = categories?.expense || [];
+  const catMap = new Map();
+  expenseCats.forEach(c => catMap.set(c.name, c));
+
+  let items = '';
+  for (const [catName, budgetVal] of Object.entries(budgets)) {
+    if (budgetVal <= 0) continue;
+    const spent = grouped[catName] || 0;
+    const pct = Math.min((spent / budgetVal) * 100, 100);
+    const barClass = pct > 100 ? 'over' : pct > 75 ? 'warning' : 'under';
+    const cat = catMap.get(catName);
+    const icon = cat?.icon || '📁';
+    const overText = spent > budgetVal ? `<span class="budget-over-alert">Excedeu ${formatCurrency(spent - budgetVal)}</span>` : '';
+
+    items += `
+      <div class="budget-item">
+        <div class="budget-item-header">
+          <span class="budget-item-label">${icon} ${catName}</span>
+          <span class="budget-item-values">${formatCurrency(spent)} / ${formatCurrency(budgetVal)}</span>
+        </div>
+        <div class="budget-bar">
+          <div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div>
+        </div>
+        ${overText}
+      </div>
+    `;
+  }
+
+  if (!items) { container.innerHTML = ''; return; }
+
   container.innerHTML = `
-    ${salaryCards}
-    <div class="card" style="border-left:4px solid var(--color-income)">
-      <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">📈 Receitas</div>
-      <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--color-income)">${formatCurrency(income)}</div>
-    </div>
-    <div class="card" style="border-left:4px solid var(--color-expense)">
-      <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">💸 Despesas</div>
-      <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--color-expense)">${formatCurrency(expense)}</div>
-    </div>
-    <div class="card" style="border-left:4px solid ${balanceColor}">
-      <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">📊 Saldo</div>
-      <div style="font-size:var(--font-size-2xl);font-weight:700;color:${balanceColor}">${formatCurrency(balance)}</div>
+    <div class="card" style="margin-bottom:var(--space-lg)">
+      <h3 style="margin:0 0 var(--space-md)">📊 Orçamento do Mês${personName ? ` — ${personName}` : ''}</h3>
+      ${items}
     </div>
   `;
 }
@@ -170,7 +226,7 @@ function renderDoughnutChart(transactions, categories) {
     options: {
       responsive: true,
       maintainAspectRatio: true,
-      cutout: '55%',
+      cutout: '60%',
       plugins: {
         legend: {
           position: 'bottom',
@@ -214,27 +270,27 @@ function renderBarChart(transactions, categories, config) {
     grouped[t.category] = (grouped[t.category] || 0) + t.amount;
   });
 
-  const activeCats = expenseCats.filter(c => grouped[c.name]);
+  const personName = currentPerson === 'all'
+    ? config?.people?.[0]?.name
+    : currentPerson;
+  const budgets = config?.budgets?.[personName] || {};
+  const hasBudgets = Object.keys(budgets).length > 0;
+
+  const activeCats = expenseCats.filter(c => grouped[c.name] || budgets[c.name]);
   const labels = activeCats.map(c => c.name);
   const actual = activeCats.map(c => grouped[c.name] || 0);
-  const colors = activeCats.map(c => c.color);
-
-  const person = currentPerson === 'all'
-    ? config?.people?.[0]
-    : config?.people?.find(p => p.name === currentPerson);
-  const hasBudget = person?.monthlyGoal && person.monthlyGoal > 0;
-  const budgetPerCat = hasBudget ? person.monthlyGoal / labels.length : 0;
+  const colors = activeCats.map(c => c.color || '#78909c');
 
   const datasets = [];
 
-  if (hasBudget) {
+  if (hasBudgets) {
     datasets.push({
       label: 'Orçado',
-      data: labels.map(() => budgetPerCat),
-      backgroundColor: 'rgba(57, 73, 171, 0.2)',
-      borderColor: 'rgba(57, 73, 171, 0.6)',
+      data: activeCats.map(c => budgets[c.name] || 0),
+      backgroundColor: 'rgba(57, 73, 171, 0.15)',
+      borderColor: 'rgba(57, 73, 171, 0.5)',
       borderWidth: 1,
-      borderRadius: 4
+      borderRadius: 6
     });
   }
 
@@ -244,7 +300,7 @@ function renderBarChart(transactions, categories, config) {
     backgroundColor: colors.map(c => c + 'cc'),
     borderColor: colors,
     borderWidth: 1,
-    borderRadius: 4
+    borderRadius: 6
   });
 
   barChart = new Chart(canvas, {
@@ -260,7 +316,7 @@ function renderBarChart(transactions, categories, config) {
             callback: v => formatCurrency(v),
             font: { family: "'Inter', sans-serif", size: 11 }
           },
-          grid: { color: 'rgba(0,0,0,0.05)' }
+          grid: { color: 'rgba(0,0,0,0.04)' }
         },
         x: {
           ticks: { font: { family: "'Inter', sans-serif", size: 11 } },
@@ -315,7 +371,7 @@ function renderRecentTransactions(transactions, categories) {
         <span class="txn-card-icon">${icon}</span>
         <div class="txn-card-info">
           <div class="txn-card-desc">${t.description}</div>
-          <div class="txn-card-meta">${formatDate(t.date)} · ${t.category}</div>
+          <div class="txn-card-meta">${formatDate(t.date)} · ${t.category}${t.person ? ' · ' + t.person : ''}</div>
         </div>
         <span class="txn-card-amount ${colorClass}">${sign} ${formatCurrency(t.amount)}</span>
       </div>
@@ -340,6 +396,7 @@ async function loadDashboard() {
 
   destroyCharts();
   renderSummary(transactions, config);
+  renderBudgetProgress(transactions, categories, config);
   renderDoughnutChart(transactions, categories);
   renderBarChart(transactions, categories, config);
   renderRecentTransactions(transactions, categories);
