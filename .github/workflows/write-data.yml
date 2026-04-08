@@ -1,0 +1,41 @@
+name: Write Data
+on:
+  repository_dispatch:
+    types:
+      - create-transaction
+      - edit-transaction
+      - delete-transaction
+      - update-config
+      - update-categories
+      - update-payment-methods
+
+concurrency:
+  group: data-writes
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Process write request
+        env:
+          EVENT_TYPE: ${{ github.event.action }}
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: node .github/scripts/process-write.mjs
+
+      - name: Commit changes
+        run: |
+          git config user.name "FinanceiroVK Bot"
+          git config user.email "bot@financeirovk.local"
+          git add data/
+          git diff --staged --quiet || git commit -m "data: ${{ github.event.action }}"
+          git push
