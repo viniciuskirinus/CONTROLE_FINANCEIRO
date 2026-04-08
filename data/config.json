@@ -12,6 +12,18 @@
       "name": "vinicius",
       "salary": 343,
       "savingsGoal": 0
+    },
+    {
+      "color": "#8091ff",
+      "creditCard": {
+        "closingDay": 5,
+        "paymentDay": 10
+      },
+      "id": 2,
+      "monthlyGoal": 2,
+      "name": "lucas",
+      "salary": 54,
+      "savingsGoal": 2
     }
   ],
   "settings": {
@@ -24,5 +36,5 @@
     "name": "CONTROLE_FINANCEIRO",
     "owner": "viniciuskirinus"
   },
-  "updatedAt": "2026-04-08T17:49:46.213Z"
+  "updatedAt": "2026-04-08T18:46:18.290Z"
 }
