@@ -8,6 +8,7 @@ on:
       - update-config
       - update-categories
       - update-payment-methods
+      - update-savings
 
 concurrency:
   group: data-writes

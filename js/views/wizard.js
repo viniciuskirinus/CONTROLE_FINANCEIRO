@@ -91,10 +91,10 @@ function goBack() {
 
 function renderWelcome(content, actions) {
   content.innerHTML = `
-    <div style="text-align:center;padding:var(--space-lg) 0;">
-      <div style="font-size:48px;margin-bottom:var(--space-md);">💰</div>
+    <div style="text-align:center;padding:var(--sp-6) 0;">
+      <div style="font-size:48px;margin-bottom:var(--sp-4);">💰</div>
       <h2>${STEPS[0].heading}</h2>
-      <p style="color:var(--color-text-secondary);margin-top:var(--space-sm);">
+      <p style="color:var(--text-secondary);margin-top:var(--sp-2);">
         Controle suas finanças de forma simples e segura.<br>
         Seus dados ficam no seu repositório GitHub.
       </p>
@@ -161,9 +161,9 @@ function renderGitHub(content, actions) {
 
   content.innerHTML = `
     <h2>${STEPS[2].heading}</h2>
-    <div class="alert alert-info" style="margin-bottom:var(--space-md);font-size:0.85rem;">
+    <div class="alert alert-info" style="margin-bottom:var(--sp-4);font-size:0.85rem;">
       <strong>Como criar um Fine-Grained PAT:</strong>
-      <ol style="margin:var(--space-xs) 0 0 var(--space-md);padding:0;">
+      <ol style="margin:var(--sp-1) 0 0 var(--sp-4);padding:0;">
         <li>Acesse GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens</li>
         <li>Clique "Generate new token"</li>
         <li>Em "Repository access", selecione "Only select repositories" e escolha o repo</li>
@@ -186,7 +186,7 @@ function renderGitHub(content, actions) {
       <input class="form-input" id="wz-pat" type="password" required placeholder="github_pat_..."
              value="${esc(wizardData.repo.pat)}">
     </div>
-    <div style="margin-bottom:var(--space-md);">
+    <div style="margin-bottom:var(--sp-4);">
       <button class="btn btn-primary" id="wz-test">
         <span id="wz-test-label">Testar Conexão</span>
       </button>
@@ -259,10 +259,10 @@ function saveRepo() {
 async function renderCategories(content, actions) {
   content.innerHTML = `
     <h2>${STEPS[3].heading}</h2>
-    <p style="color:var(--color-text-secondary);margin-bottom:var(--space-md);">
+    <p style="color:var(--text-secondary);margin-bottom:var(--sp-4);">
       Estas são as categorias padrão. Você pode personalizá-las depois nas Configurações.
     </p>
-    <div id="wz-categories" style="display:flex;align-items:center;justify-content:center;padding:var(--space-lg);">
+    <div id="wz-categories" style="display:flex;align-items:center;justify-content:center;padding:var(--sp-6);">
       <div class="spinner"></div>
     </div>
   `;
@@ -278,22 +278,22 @@ async function renderCategories(content, actions) {
   const cats = await getCategories();
   const container = document.getElementById('wz-categories');
   if (!cats) {
-    container.innerHTML = '<p style="color:var(--color-text-secondary);">Não foi possível carregar categorias.</p>';
+    container.innerHTML = '<p style="color:var(--text-secondary);">Não foi possível carregar categorias.</p>';
     return;
   }
 
   let html = '';
   if (cats.expense?.length) {
-    html += `<h3 style="margin-bottom:var(--space-xs);font-size:0.9rem;color:var(--color-expense);">Despesas</h3>`;
-    html += '<div style="display:flex;flex-wrap:wrap;gap:var(--space-xs);margin-bottom:var(--space-md);">';
+    html += `<h3 style="margin-bottom:var(--sp-1);font-size:0.9rem;color:var(--color-expense);">Despesas</h3>`;
+    html += '<div style="display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-bottom:var(--sp-4);">';
     cats.expense.forEach(c => {
       html += `<span class="badge" style="background:${c.color}20;color:${c.color};border:1px solid ${c.color}40;padding:4px 10px;border-radius:var(--radius);font-size:0.82rem;">${c.icon} ${esc(c.name)}</span>`;
     });
     html += '</div>';
   }
   if (cats.income?.length) {
-    html += `<h3 style="margin-bottom:var(--space-xs);font-size:0.9rem;color:var(--color-income);">Receitas</h3>`;
-    html += '<div style="display:flex;flex-wrap:wrap;gap:var(--space-xs);">';
+    html += `<h3 style="margin-bottom:var(--sp-1);font-size:0.9rem;color:var(--color-income);">Receitas</h3>`;
+    html += '<div style="display:flex;flex-wrap:wrap;gap:var(--sp-1);">';
     cats.income.forEach(c => {
       html += `<span class="badge" style="background:${c.color}20;color:${c.color};border:1px solid ${c.color}40;padding:4px 10px;border-radius:var(--radius);font-size:0.82rem;">${c.icon} ${esc(c.name)}</span>`;
     });
@@ -305,10 +305,10 @@ async function renderCategories(content, actions) {
 function renderFinish(content, actions) {
   const closingDay = wizardData.person.creditCard.closingDay || 5;
   content.innerHTML = `
-    <div style="text-align:center;padding:var(--space-lg) 0;">
-      <div style="font-size:48px;margin-bottom:var(--space-md);">✅</div>
+    <div style="text-align:center;padding:var(--sp-6) 0;">
+      <div style="font-size:48px;margin-bottom:var(--sp-4);">✅</div>
       <h2>${STEPS[4].heading}</h2>
-      <div style="text-align:left;margin-top:var(--space-md);" class="card">
+      <div style="text-align:left;margin-top:var(--sp-4);" class="card">
         <p><strong>👤 Pessoa:</strong> ${esc(wizardData.person.name)}</p>
         ${wizardData.person.salary ? `<p><strong>💰 Salário:</strong> ${formatCurrency(wizardData.person.salary)}</p>` : ''}
         ${wizardData.person.monthlyGoal ? `<p><strong>🎯 Meta mensal:</strong> ${formatCurrency(wizardData.person.monthlyGoal)}</p>` : ''}

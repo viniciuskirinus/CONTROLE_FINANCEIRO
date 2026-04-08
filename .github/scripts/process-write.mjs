@@ -169,6 +169,22 @@ function handleUpdatePaymentMethods(methods) {
   console.log('Payment methods updated');
 }
 
+function handleUpdateSavings(savingsData) {
+  if (!savingsData || typeof savingsData !== 'object') {
+    console.error('Validation failed: savings data must be an object');
+    process.exit(1);
+  }
+
+  const file = {
+    _schema_version: 1,
+    goals: savingsData.goals || [],
+    deposits: savingsData.deposits || [],
+    updatedAt: new Date().toISOString()
+  };
+  writeJSONFile('data/savings.json', file);
+  console.log('Savings updated');
+}
+
 // --- Dispatch ---
 
 const handlers = {
@@ -177,7 +193,8 @@ const handlers = {
   'delete-transaction': handleDeleteTransaction,
   'update-config': handleUpdateConfig,
   'update-categories': handleUpdateCategories,
-  'update-payment-methods': handleUpdatePaymentMethods
+  'update-payment-methods': handleUpdatePaymentMethods,
+  'update-savings': handleUpdateSavings
 };
 
 const handler = handlers[eventType];

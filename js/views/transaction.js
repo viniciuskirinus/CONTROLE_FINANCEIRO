@@ -4,12 +4,13 @@ import { formatCurrency, getCurrentYearMonth } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
 import { showAlert } from '../app.js';
 import { isGeminiConfigured, suggestCategory } from '../modules/gemini.js';
+import { recordSalaryChange } from './salary-history.js';
 
 const SALARY_KEYWORDS = ['salário', 'salario', 'salary', 'holerite', 'pagamento mensal', 'remuneração', 'remuneracao', 'proventos'];
 
 export async function initTransaction() {
   const section = document.getElementById('view-transaction');
-  section.innerHTML = '<div style="text-align:center;padding:var(--space-2xl)"><span class="spinner spinner-lg"></span></div>';
+  section.innerHTML = '<div style="text-align:center;padding:var(--sp-10)"><span class="spinner spinner-lg"></span></div>';
 
   try {
     const [config, categories, paymentMethods] = await Promise.all([
@@ -59,7 +60,7 @@ function render(section, config, categories, paymentMethods) {
         <div class="form-group">
           <label class="form-label" for="txn-description">Descrição</label>
           <input type="text" id="txn-description" class="form-input" placeholder="Ex: Supermercado, Salário..." required>
-          <div id="txn-ai-hint" style="display:none;margin-top:4px;padding:6px 10px;border-radius:8px;background:var(--color-surface-hover);font-size:var(--font-size-sm);display:none;align-items:center;gap:6px;flex-wrap:wrap"></div>
+          <div id="txn-ai-hint" style="display:none;margin-top:4px;padding:6px 10px;border-radius:8px;background:var(--bg-hover);font-size:var(--text-sm);display:none;align-items:center;gap:6px;flex-wrap:wrap"></div>
         </div>
 
         <div class="form-group">
@@ -102,7 +103,7 @@ function render(section, config, categories, paymentMethods) {
           <textarea id="txn-notes" class="form-input" rows="2" placeholder="Opcional..."></textarea>
         </div>
 
-        <div id="txn-credit-info" style="display:none" class="alert alert-info" style="margin-bottom:var(--space-md)">
+        <div id="txn-credit-info" style="display:none" class="alert alert-info" style="margin-bottom:var(--sp-4)">
           📅 Lançado na fatura do mês seguinte
         </div>
 
@@ -215,12 +216,12 @@ function bindEvents(section, config, categories, people) {
 
           const label = document.createElement('span');
           label.textContent = `💡 Sugestão: ${suggestion.category}`;
-          label.style.color = 'var(--color-text-secondary)';
+          label.style.color = 'var(--text-secondary)';
 
           const acceptBtn = document.createElement('button');
           acceptBtn.type = 'button';
           acceptBtn.className = 'btn btn-ghost';
-          acceptBtn.style.cssText = 'padding:2px 8px;font-size:var(--font-size-sm);min-height:0';
+          acceptBtn.style.cssText = 'padding:2px 8px;font-size:var(--text-sm);min-height:0';
           acceptBtn.textContent = 'Aceitar';
           acceptBtn.addEventListener('click', () => {
             categorySelect.value = suggestion.category;
@@ -381,14 +382,8 @@ async function checkSalaryUpdate(config, personName, amount) {
     : `Salário detectado: ${formatCurrency(amount)}.\nDefinir como salário de "${person.name}"?`;
   if (!confirm(msg)) return;
 
-  const people = config.people.map(p =>
-    p.name === personName ? { ...p, salary: amount } : p
-  );
-  const updatedConfig = { ...config, people };
-  putCacheEntry('config', updatedConfig);
-  dispatch('update-config', { ...updatedConfig, _schema_version: updatedConfig._schema_version || 1 }).then(r => {
-    if (r?.success) showAlert(`Salário atualizado para ${formatCurrency(amount)}!`, 'success');
-  }).catch(() => {});
+  await recordSalaryChange(personName, amount);
+  showAlert(`Salário atualizado para ${formatCurrency(amount)}!`, 'success');
 }
 
 function resetForm(section) {

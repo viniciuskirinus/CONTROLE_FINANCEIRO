@@ -37,6 +37,10 @@ export async function getPaymentMethods() {
   return fetchJSON(`${BASE_URL}/data/payment-methods.json`, 'payment-methods');
 }
 
+export async function getSavings() {
+  return fetchJSON(`${BASE_URL}/data/savings.json`, 'savings');
+}
+
 async function fetchJSON(url, cacheKey) {
   if (cache.has(cacheKey)) return cache.get(cacheKey);
 

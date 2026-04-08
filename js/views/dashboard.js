@@ -2,7 +2,7 @@ import { getConfig, getTransactions, getCategories, invalidateCache } from '../m
 import { formatCurrency, getCurrentYearMonth, formatDate } from '../modules/format.js';
 
 const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
@@ -30,6 +30,19 @@ function monthLabel(ym) {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
+function isDark() {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
+
+function chartColors() {
+  const dark = isDark();
+  return {
+    text: dark ? '#8b92a8' : '#64748b',
+    grid: dark ? '#232840' : '#e2e8f0',
+    cardBg: dark ? '#141825' : '#ffffff'
+  };
+}
+
 function destroyCharts() {
   if (doughnutChart) { doughnutChart.destroy(); doughnutChart = null; }
   if (barChart) { barChart.destroy(); barChart = null; }
@@ -41,9 +54,9 @@ function buildLayout(section, people) {
       <h2>Dashboard</h2>
       <div class="dash-controls">
         <div class="dash-month-nav">
-          <button class="btn btn-ghost" id="dash-prev-month" aria-label="Mês anterior">◀</button>
+          <button class="btn btn-ghost" id="dash-prev-month" aria-label="Mes anterior">&lsaquo;</button>
           <span id="dash-month-label" class="dash-month-text"></span>
-          <button class="btn btn-ghost" id="dash-next-month" aria-label="Próximo mês">▶</button>
+          <button class="btn btn-ghost" id="dash-next-month" aria-label="Proximo mes">&rsaquo;</button>
         </div>
         <select class="form-select" id="dash-person-filter" style="min-width:120px">
           <option value="all">Todos</option>
@@ -63,15 +76,15 @@ function buildLayout(section, people) {
         </div>
       </div>
       <div class="card dash-chart-card">
-        <h3>Orçado vs Realizado</h3>
+        <h3>Orcado vs Realizado</h3>
         <div id="dash-bar-wrapper" class="dash-chart-wrapper">
           <canvas id="dash-bar-chart"></canvas>
         </div>
       </div>
     </div>
 
-    <div class="card" id="dash-recent">
-      <h3 style="margin:0 0 var(--space-md)">Últimas Transações</h3>
+    <div class="card" id="dash-recent" style="margin-top:var(--sp-4)">
+      <h3 style="margin:0 0 var(--sp-4)">Ultimas Transacoes</h3>
       <div id="dash-recent-list"></div>
     </div>
   `;
@@ -88,7 +101,6 @@ function renderSummary(transactions, config) {
     : config?.people?.find(p => p.name === currentPerson);
   const salary = person?.salary || 0;
   const available = salary > 0 ? salary - expense : balance;
-  const personLabel = currentPerson === 'all' && config?.people?.length > 1 ? ` (${person?.name || ''})` : '';
 
   let html = '';
 
@@ -97,15 +109,13 @@ function renderSummary(transactions, config) {
     const barClass = pctUsed > 90 ? 'over' : pctUsed > 70 ? 'warning' : 'under';
     html += `
       <div class="summary-card summary-card--salary">
-        <div class="summary-card__label">💼 Salário${personLabel}</div>
+        <div class="summary-card__label">Salario</div>
         <div class="summary-card__value">${formatCurrency(salary)}</div>
-        <div class="summary-card__bar">
-          <div class="summary-card__bar-fill budget-bar-fill ${barClass}" style="width:${pctUsed}%"></div>
-        </div>
+        <div class="summary-card__bar"><div class="summary-card__bar-fill budget-bar-fill ${barClass}" style="width:${pctUsed}%"></div></div>
         <div class="summary-card__hint">${pctUsed.toFixed(0)}% comprometido</div>
       </div>
       <div class="summary-card summary-card--${available >= 0 ? 'positive' : 'negative'}">
-        <div class="summary-card__label">🏦 Disponível</div>
+        <div class="summary-card__label">Disponivel</div>
         <div class="summary-card__value">${formatCurrency(available)}</div>
         ${person?.monthlyGoal > 0 ? `<div class="summary-card__hint">Meta: ${formatCurrency(person.monthlyGoal)}</div>` : ''}
       </div>
@@ -114,15 +124,15 @@ function renderSummary(transactions, config) {
 
   html += `
     <div class="summary-card summary-card--income">
-      <div class="summary-card__label">📈 Receitas</div>
+      <div class="summary-card__label">Receitas</div>
       <div class="summary-card__value">${formatCurrency(income)}</div>
     </div>
     <div class="summary-card summary-card--expense">
-      <div class="summary-card__label">📉 Despesas</div>
+      <div class="summary-card__label">Despesas</div>
       <div class="summary-card__value">${formatCurrency(expense)}</div>
     </div>
     <div class="summary-card summary-card--${balance >= 0 ? 'positive' : 'negative'}">
-      <div class="summary-card__label">💰 Saldo</div>
+      <div class="summary-card__label">Saldo</div>
       <div class="summary-card__value">${formatCurrency(balance)}</div>
     </div>
   `;
@@ -134,15 +144,10 @@ function renderBudgetProgress(transactions, categories, config) {
   const container = document.getElementById('dash-budget-progress');
   if (!container) return;
 
-  const personName = currentPerson === 'all'
-    ? config?.people?.[0]?.name
-    : currentPerson;
+  const personName = currentPerson === 'all' ? config?.people?.[0]?.name : currentPerson;
   const budgets = config?.budgets?.[personName];
 
-  if (!budgets || Object.keys(budgets).length === 0) {
-    container.innerHTML = '';
-    return;
-  }
+  if (!budgets || Object.keys(budgets).length === 0) { container.innerHTML = ''; return; }
 
   const expenses = transactions.filter(t => t.type === 'expense');
   const grouped = {};
@@ -159,7 +164,7 @@ function renderBudgetProgress(transactions, categories, config) {
     const pct = Math.min((spent / budgetVal) * 100, 100);
     const barClass = pct > 100 ? 'over' : pct > 75 ? 'warning' : 'under';
     const cat = catMap.get(catName);
-    const icon = cat?.icon || '📁';
+    const icon = cat?.icon || '';
     const overText = spent > budgetVal ? `<span class="budget-over-alert">Excedeu ${formatCurrency(spent - budgetVal)}</span>` : '';
 
     items += `
@@ -168,9 +173,7 @@ function renderBudgetProgress(transactions, categories, config) {
           <span class="budget-item-label">${icon} ${catName}</span>
           <span class="budget-item-values">${formatCurrency(spent)} / ${formatCurrency(budgetVal)}</span>
         </div>
-        <div class="budget-bar">
-          <div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div>
-        </div>
+        <div class="budget-bar"><div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div></div>
         ${overText}
       </div>
     `;
@@ -179,8 +182,8 @@ function renderBudgetProgress(transactions, categories, config) {
   if (!items) { container.innerHTML = ''; return; }
 
   container.innerHTML = `
-    <div class="card" style="margin-bottom:var(--space-lg)">
-      <h3 style="margin:0 0 var(--space-md)">📊 Orçamento do Mês${personName ? ` — ${personName}` : ''}</h3>
+    <div class="card" style="margin-bottom:var(--sp-4)">
+      <h3 style="margin:0 0 var(--sp-4)">Orcamento do Mes${personName ? ` — ${personName}` : ''}</h3>
       ${items}
     </div>
   `;
@@ -192,7 +195,7 @@ function renderDoughnutChart(transactions, categories) {
   const expenses = transactions.filter(t => t.type === 'expense');
 
   if (!expenses.length) {
-    wrapper.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhuma despesa registrada</p></div>`;
+    wrapper.innerHTML = '<div class="empty-state"><p>Nenhuma despesa registrada</p></div>';
     return;
   }
 
@@ -200,28 +203,21 @@ function renderDoughnutChart(transactions, categories) {
   const canvas = document.getElementById('dash-doughnut-chart');
 
   const catMap = new Map();
-  const expenseCats = categories?.expense || [];
-  expenseCats.forEach(c => catMap.set(c.name, c));
+  (categories?.expense || []).forEach(c => catMap.set(c.name, c));
 
   const grouped = {};
-  expenses.forEach(t => {
-    grouped[t.category] = (grouped[t.category] || 0) + t.amount;
-  });
+  expenses.forEach(t => { grouped[t.category] = (grouped[t.category] || 0) + t.amount; });
 
   const labels = Object.keys(grouped);
   const data = Object.values(grouped);
   const colors = labels.map(l => catMap.get(l)?.color || '#78909c');
+  const c = chartColors();
 
   doughnutChart = new Chart(canvas, {
     type: 'doughnut',
     data: {
       labels,
-      datasets: [{
-        data,
-        backgroundColor: colors,
-        borderWidth: 2,
-        borderColor: '#ffffff'
-      }]
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: c.cardBg }]
     },
     options: {
       responsive: true,
@@ -230,12 +226,7 @@ function renderDoughnutChart(transactions, categories) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: {
-            padding: 12,
-            usePointStyle: true,
-            pointStyleWidth: 10,
-            font: { family: "'Inter', sans-serif", size: 12 }
-          }
+          labels: { padding: 12, usePointStyle: true, pointStyleWidth: 10, color: c.text, font: { family: "'Inter', sans-serif", size: 11 } }
         },
         tooltip: {
           callbacks: {
@@ -258,7 +249,7 @@ function renderBarChart(transactions, categories, config) {
   const expenseCats = categories?.expense || [];
 
   if (!expenseCats.length || !expenses.length) {
-    wrapper.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Sem dados para exibir</p></div>`;
+    wrapper.innerHTML = '<div class="empty-state"><p>Sem dados para exibir</p></div>';
     return;
   }
 
@@ -266,13 +257,9 @@ function renderBarChart(transactions, categories, config) {
   const canvas = document.getElementById('dash-bar-chart');
 
   const grouped = {};
-  expenses.forEach(t => {
-    grouped[t.category] = (grouped[t.category] || 0) + t.amount;
-  });
+  expenses.forEach(t => { grouped[t.category] = (grouped[t.category] || 0) + t.amount; });
 
-  const personName = currentPerson === 'all'
-    ? config?.people?.[0]?.name
-    : currentPerson;
+  const personName = currentPerson === 'all' ? config?.people?.[0]?.name : currentPerson;
   const budgets = config?.budgets?.[personName] || {};
   const hasBudgets = Object.keys(budgets).length > 0;
 
@@ -280,27 +267,25 @@ function renderBarChart(transactions, categories, config) {
   const labels = activeCats.map(c => c.name);
   const actual = activeCats.map(c => grouped[c.name] || 0);
   const colors = activeCats.map(c => c.color || '#78909c');
+  const c = chartColors();
 
   const datasets = [];
-
   if (hasBudgets) {
     datasets.push({
-      label: 'Orçado',
-      data: activeCats.map(c => budgets[c.name] || 0),
-      backgroundColor: 'rgba(57, 73, 171, 0.15)',
-      borderColor: 'rgba(57, 73, 171, 0.5)',
-      borderWidth: 1,
-      borderRadius: 6
+      label: 'Orcado',
+      data: activeCats.map(cat => budgets[cat.name] || 0),
+      backgroundColor: isDark() ? 'rgba(129,140,248,0.15)' : 'rgba(79,70,229,0.12)',
+      borderColor: isDark() ? 'rgba(129,140,248,0.4)' : 'rgba(79,70,229,0.4)',
+      borderWidth: 1, borderRadius: 4
     });
   }
 
   datasets.push({
     label: 'Realizado',
     data: actual,
-    backgroundColor: colors.map(c => c + 'cc'),
+    backgroundColor: colors.map(cl => cl + 'cc'),
     borderColor: colors,
-    borderWidth: 1,
-    borderRadius: 6
+    borderWidth: 1, borderRadius: 4
   });
 
   barChart = new Chart(canvas, {
@@ -312,33 +297,20 @@ function renderBarChart(transactions, categories, config) {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: {
-            callback: v => formatCurrency(v),
-            font: { family: "'Inter', sans-serif", size: 11 }
-          },
-          grid: { color: 'rgba(0,0,0,0.04)' }
+          ticks: { callback: v => formatCurrency(v), color: c.text, font: { size: 11 } },
+          grid: { color: c.grid }
         },
         x: {
-          ticks: { font: { family: "'Inter', sans-serif", size: 11 } },
+          ticks: { color: c.text, font: { size: 11 } },
           grid: { display: false }
         }
       },
       plugins: {
         legend: {
           display: datasets.length > 1,
-          labels: {
-            usePointStyle: true,
-            pointStyleWidth: 10,
-            font: { family: "'Inter', sans-serif", size: 12 }
-          }
+          labels: { usePointStyle: true, pointStyleWidth: 10, color: c.text, font: { size: 11 } }
         },
-        tooltip: {
-          callbacks: {
-            label(ctx) {
-              return ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`;
-            }
-          }
-        }
+        tooltip: { callbacks: { label(ctx) { return ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`; } } }
       }
     }
   });
@@ -348,7 +320,7 @@ function renderRecentTransactions(transactions, categories) {
   const container = document.getElementById('dash-recent-list');
 
   if (!transactions.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>Nenhuma transação neste mês</p></div>`;
+    container.innerHTML = '<div class="empty-state"><p>Nenhuma transacao neste mes</p></div>';
     return;
   }
 
@@ -361,7 +333,7 @@ function renderRecentTransactions(transactions, categories) {
 
   container.innerHTML = recent.map(t => {
     const cat = catMap.get(t.category);
-    const icon = cat?.icon || '💵';
+    const icon = cat?.icon || '';
     const isIncome = t.type === 'income';
     const colorClass = isIncome ? 'amount-income' : 'amount-expense';
     const sign = isIncome ? '+' : '-';

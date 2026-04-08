@@ -4,6 +4,7 @@ import { formatCurrency } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
 import { isGeminiConfigured, analyzeReceipt, analyzeStatement, compressImage } from '../modules/gemini.js';
 import { showAlert, navigate } from '../app.js';
+import { recordSalaryChange } from './salary-history.js';
 
 const SALARY_KEYWORDS = ['salário', 'salario', 'salary', 'holerite', 'pagamento mensal', 'remuneração', 'remuneracao', 'folha de pagamento', 'vencimento', 'proventos'];
 
@@ -63,11 +64,11 @@ function render() {
 }
 
 function renderNotConfigured(section) {
-  const card = el('div', { className: 'card', style: { textAlign: 'center', padding: 'var(--space-2xl)' } });
+  const card = el('div', { className: 'card', style: { textAlign: 'center', padding: 'var(--sp-10)' } });
   card.append(
-    el('div', { style: { fontSize: '48px', marginBottom: 'var(--space-md)' } }, '🤖'),
-    el('h3', { style: { marginBottom: 'var(--space-md)' } }, 'Gemini AI não configurado'),
-    el('p', { style: { color: 'var(--color-text-secondary)', marginBottom: 'var(--space-lg)' } },
+    el('div', { style: { fontSize: '48px', marginBottom: 'var(--sp-4)' } }, '🤖'),
+    el('h3', { style: { marginBottom: 'var(--sp-4)' } }, 'Gemini AI não configurado'),
+    el('p', { style: { color: 'var(--text-secondary)', marginBottom: 'var(--sp-6)' } },
       'Configure sua chave da API Gemini nas Configurações para usar o scanner de comprovantes.'
     ),
     el('button', {
@@ -79,7 +80,7 @@ function renderNotConfigured(section) {
 }
 
 function buildTabs() {
-  const tabs = el('div', { className: 'toggle-group', style: { marginBottom: 'var(--space-lg)' } });
+  const tabs = el('div', { className: 'toggle-group', style: { marginBottom: 'var(--sp-6)' } });
 
   const receiptBtn = el('button', {
     className: `toggle-option${state.tab === 'receipt' ? ' active' : ''}`,
@@ -99,9 +100,9 @@ function buildUploadArea(onFileSelected) {
   const area = el('div', {
     className: 'card',
     style: {
-      border: '2px dashed var(--color-border)',
+      border: '2px dashed var(--border)',
       textAlign: 'center',
-      padding: 'var(--space-2xl)',
+      padding: 'var(--sp-10)',
       cursor: 'pointer',
       transition: 'border-color 0.2s, background 0.2s'
     }
@@ -121,25 +122,25 @@ function buildUploadArea(onFileSelected) {
 
   area.addEventListener('dragover', (e) => {
     e.preventDefault();
-    area.style.borderColor = 'var(--color-secondary)';
-    area.style.background = 'var(--color-surface-hover)';
+    area.style.borderColor = 'var(--accent)';
+    area.style.background = 'var(--bg-hover)';
   });
   area.addEventListener('dragleave', () => {
-    area.style.borderColor = 'var(--color-border)';
+    area.style.borderColor = 'var(--border)';
     area.style.background = '';
   });
   area.addEventListener('drop', (e) => {
     e.preventDefault();
-    area.style.borderColor = 'var(--color-border)';
+    area.style.borderColor = 'var(--border)';
     area.style.background = '';
     if (e.dataTransfer.files?.[0]) onFileSelected(e.dataTransfer.files[0]);
   });
 
   area.append(
     input,
-    el('div', { style: { fontSize: '48px', marginBottom: 'var(--space-md)' } }, '📷'),
-    el('p', { style: { fontWeight: '600', marginBottom: 'var(--space-xs)' } }, 'Clique ou arraste uma imagem'),
-    el('p', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' } }, 'JPG, PNG, WebP ou HEIC')
+    el('div', { style: { fontSize: '48px', marginBottom: 'var(--sp-4)' } }, '📷'),
+    el('p', { style: { fontWeight: '600', marginBottom: 'var(--sp-1)' } }, 'Clique ou arraste uma imagem'),
+    el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'JPG, PNG, WebP ou HEIC')
   );
 
   return area;
@@ -148,13 +149,13 @@ function buildUploadArea(onFileSelected) {
 function buildPreviewBar(onAnalyze, label) {
   const bar = el('div', {
     className: 'card',
-    style: { display: 'flex', alignItems: 'center', gap: 'var(--space-md)', padding: 'var(--space-md)' }
+    style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-4)', padding: 'var(--sp-4)' }
   });
 
   if (state.preview) {
     const thumb = el('img', {
       src: state.preview,
-      style: { width: '60px', height: '60px', objectFit: 'cover', borderRadius: 'var(--radius-md)' }
+      style: { width: '60px', height: '60px', objectFit: 'cover', borderRadius: 'var(--radius)' }
     });
     bar.append(thumb);
   }
@@ -162,17 +163,17 @@ function buildPreviewBar(onAnalyze, label) {
   const info = el('div', { style: { flex: '1' } });
   info.append(
     el('div', { style: { fontWeight: '600' } }, state.file?.name || 'Imagem'),
-    el('div', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' } },
+    el('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } },
       state.file ? `${(state.file.size / 1024).toFixed(0)} KB` : ''
     )
   );
   bar.append(info);
 
   if (state.analyzing) {
-    const spinnerWrap = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' } });
+    const spinnerWrap = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' } });
     spinnerWrap.append(
       el('div', { className: 'spinner spinner-sm' }),
-      el('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' } }, label)
+      el('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } }, label)
     );
     bar.append(spinnerWrap);
   } else {
@@ -240,15 +241,15 @@ function buildReceiptForm() {
   const type = r.type || 'expense';
   const cats = categories?.[type] || [];
 
-  const card = el('div', { className: 'card', style: { marginTop: 'var(--space-md)' } });
+  const card = el('div', { className: 'card', style: { marginTop: 'var(--sp-4)' } });
 
   const badge = el('div', {
     style: {
-      display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)',
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-1)',
       padding: '2px 10px', borderRadius: '12px',
-      fontSize: 'var(--font-size-sm)', fontWeight: '600',
-      background: 'var(--color-surface-hover)', color: 'var(--color-secondary)',
-      marginBottom: 'var(--space-md)'
+      fontSize: 'var(--text-sm)', fontWeight: '600',
+      background: 'var(--bg-hover)', color: 'var(--accent)',
+      marginBottom: 'var(--sp-4)'
     }
   }, '🤖 Preenchido por IA');
 
@@ -314,7 +315,7 @@ function buildReceiptForm() {
   const submitBtn = el('button', {
     type: 'submit',
     className: 'btn btn-primary',
-    style: { width: '100%', marginTop: 'var(--space-md)' }
+    style: { width: '100%', marginTop: 'var(--sp-4)' }
   }, '💾 Salvar Transação');
 
   form.append(typeToggle, dateGrp, descGrp, amountGrp, catGrp, subGrp);
@@ -486,20 +487,20 @@ function buildStatementTable() {
   const items = state.statementItems || [];
   const expenseCats = state.categories?.expense || [];
 
-  const card = el('div', { className: 'card', style: { marginTop: 'var(--space-md)', overflowX: 'auto' } });
+  const card = el('div', { className: 'card', style: { marginTop: 'var(--sp-4)', overflowX: 'auto' } });
 
   const badge = el('div', {
     style: {
-      display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)',
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-1)',
       padding: '2px 10px', borderRadius: '12px',
-      fontSize: 'var(--font-size-sm)', fontWeight: '600',
-      background: 'var(--color-surface-hover)', color: 'var(--color-secondary)',
-      marginBottom: 'var(--space-md)'
+      fontSize: 'var(--text-sm)', fontWeight: '600',
+      background: 'var(--bg-hover)', color: 'var(--accent)',
+      marginBottom: 'var(--sp-4)'
     }
   }, `🤖 ${items.length} itens encontrados`);
 
   if (!items.length) {
-    card.append(badge, el('p', { style: { color: 'var(--color-text-secondary)', textAlign: 'center', padding: 'var(--space-lg)' } }, 'Nenhum item identificado na fatura.'));
+    card.append(badge, el('p', { style: { color: 'var(--text-secondary)', textAlign: 'center', padding: 'var(--sp-6)' } }, 'Nenhum item identificado na fatura.'));
     return card;
   }
 
@@ -538,19 +539,19 @@ function buildStatementTable() {
 
     const dateInput = el('input', {
       className: 'form-input', type: 'date', value: item.date || '',
-      style: { fontSize: 'var(--font-size-sm)', padding: '4px' },
+      style: { fontSize: 'var(--text-sm)', padding: '4px' },
       onChange: (e) => { item.date = e.target.value; }
     });
 
     const descInput = el('input', {
       className: 'form-input', type: 'text', value: item.description || '',
-      style: { fontSize: 'var(--font-size-sm)', padding: '4px', minWidth: '150px' },
+      style: { fontSize: 'var(--text-sm)', padding: '4px', minWidth: '150px' },
       onChange: (e) => { item.description = e.target.value; }
     });
 
     const catSelect = el('select', {
       className: 'form-select',
-      style: { fontSize: 'var(--font-size-sm)', padding: '4px' },
+      style: { fontSize: 'var(--text-sm)', padding: '4px' },
       onChange: (e) => { item.category = e.target.value; }
     });
     catSelect.append(el('option', { value: '' }, '—'));
@@ -562,7 +563,7 @@ function buildStatementTable() {
 
     const amountInput = el('input', {
       className: 'form-input', type: 'number', step: '0.01', value: String(item.amount || ''),
-      style: { fontSize: 'var(--font-size-sm)', padding: '4px', width: '100px', textAlign: 'right' },
+      style: { fontSize: 'var(--text-sm)', padding: '4px', width: '100px', textAlign: 'right' },
       onChange: (e) => { item.amount = parseFloat(e.target.value) || 0; }
     });
 
@@ -582,25 +583,25 @@ function buildStatementTable() {
   const selectedTotal = items.filter(i => i._selected).reduce((s, i) => s + (i.amount || 0), 0);
 
   const footer = el('div', {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--sp-4)', flexWrap: 'wrap', gap: 'var(--sp-2)' }
   });
 
   footer.append(
-    el('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' } },
+    el('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } },
       `${selectedCount} de ${items.length} selecionados · Total: ${formatCurrency(selectedTotal)}`
     )
   );
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-sm)' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)' } });
   const people = state.config?.people || [];
 
   if (people.length > 1) {
-    const personSelect = el('select', { className: 'form-select', id: 'stmt-person', style: { fontSize: 'var(--font-size-sm)' } });
+    const personSelect = el('select', { className: 'form-select', id: 'stmt-person', style: { fontSize: 'var(--text-sm)' } });
     people.forEach(p => personSelect.append(el('option', { value: p.name }, p.name)));
     actions.append(personSelect);
   }
 
-  const paySelect = el('select', { className: 'form-select', id: 'stmt-payment', style: { fontSize: 'var(--font-size-sm)' } });
+  const paySelect = el('select', { className: 'form-select', id: 'stmt-payment', style: { fontSize: 'var(--text-sm)' } });
   (state.paymentMethods?.methods || []).forEach(m => paySelect.append(el('option', { value: m }, m)));
   actions.append(paySelect);
 
@@ -715,19 +716,8 @@ async function checkAndOfferSalaryUpdate(personName, amount) {
 
   if (!confirm(msg)) return;
 
-  const people = config.people.map(p =>
-    p.name === personName ? { ...p, salary: amount } : p
-  );
-
-  const updatedConfig = { ...config, people, _schema_version: config._schema_version || 1 };
-  state.config = updatedConfig;
-  putCacheEntry('config', updatedConfig);
-
-  dispatch('update-config', updatedConfig).then(result => {
-    if (result?.success) {
-      showAlert(`Salário de "${person.name}" atualizado para ${formatCurrency(amount)}!`, 'success');
-    }
-  }).catch(() => {});
+  await recordSalaryChange(personName, amount);
+  showAlert(`Salário de "${person.name}" atualizado para ${formatCurrency(amount)}!`, 'success');
 }
 
 function buildFormGroup(label, input) {
@@ -743,7 +733,7 @@ export async function initReceipt() {
   const section = getSection();
   if (!section) return;
 
-  section.innerHTML = '<div style="text-align:center;padding:var(--space-2xl)"><span class="spinner spinner-lg"></span></div>';
+  section.innerHTML = '<div style="text-align:center;padding:var(--sp-10)"><span class="spinner spinner-lg"></span></div>';
 
   try {
     const [config, categories, paymentMethods] = await Promise.all([

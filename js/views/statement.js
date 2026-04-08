@@ -17,7 +17,7 @@ let viewState = {
 
 export async function initStatement() {
   const section = document.getElementById('view-statement');
-  section.innerHTML = '<div style="text-align:center;padding:var(--space-2xl)"><span class="spinner spinner-lg"></span></div>';
+  section.innerHTML = '<div style="text-align:center;padding:var(--sp-10)"><span class="spinner spinner-lg"></span></div>';
 
   try {
     const [config, categories, paymentMethods] = await Promise.all([
@@ -55,7 +55,7 @@ function renderShell(section) {
   section.innerHTML = `
     <div class="section-header">
       <h2>📋 Extrato</h2>
-      <div style="display:flex;align-items:center;gap:var(--space-sm)">
+      <div style="display:flex;align-items:center;gap:var(--sp-2)">
         <button class="btn btn-ghost" id="stmt-prev-month" title="Mês anterior">←</button>
         <span id="stmt-month-label" style="font-weight:700;min-width:100px;text-align:center"></span>
         <button class="btn btn-ghost" id="stmt-next-month" title="Próximo mês">→</button>
@@ -83,7 +83,7 @@ function renderShell(section) {
       <button class="btn" id="stmt-bulk-delete">🗑️ Excluir selecionados</button>
     </div>
 
-    <div id="stmt-loading" style="text-align:center;padding:var(--space-xl);display:none">
+    <div id="stmt-loading" style="text-align:center;padding:var(--sp-8);display:none">
       <span class="spinner spinner-lg"></span>
     </div>
 

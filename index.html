@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FinanceiroVK</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
@@ -13,44 +13,63 @@
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <div class="app-layout">
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen" hidden></div>
+
+  <div class="app-layout" id="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-header">💰 FinanceiroVK</div>
+      <div class="sidebar-brand">Financeiro<span>VK</span></div>
       <nav class="sidebar-nav">
         <button class="nav-item active" data-view="dashboard">
-          <span class="nav-icon">📊</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           <span class="nav-label">Dashboard</span>
         </button>
         <button class="nav-item" data-view="transaction">
-          <span class="nav-icon">💳</span>
-          <span class="nav-label">Transação</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span class="nav-label">Transacao</span>
         </button>
         <button class="nav-item" data-view="statement">
-          <span class="nav-icon">📋</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span class="nav-label">Extrato</span>
         </button>
+        <button class="nav-item" data-view="savings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2"/><path d="M2 9.1C1.2 11.5 2 14.5 4 16.4"/><circle cx="16.5" cy="9.5" r=".5" fill="currentColor"/></svg>
+          <span class="nav-label">Poupanca</span>
+        </button>
+        <button class="nav-item" data-view="salary">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span class="nav-label">Salarios</span>
+        </button>
         <button class="nav-item" data-view="receipt">
-          <span class="nav-icon">📸</span>
-          <span class="nav-label">Comprovante</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span class="nav-label">Scanner</span>
         </button>
         <button class="nav-item" data-view="settings">
-          <span class="nav-icon">⚙️</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span class="nav-label">Config</span>
         </button>
       </nav>
+      <div class="sidebar-footer">
+        <button class="theme-toggle" id="theme-toggle">
+          <svg id="theme-icon-light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg id="theme-icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <span id="theme-label">Modo escuro</span>
+        </button>
+      </div>
     </aside>
 
     <main class="main-content">
       <section id="view-dashboard" class="view-section" hidden></section>
       <section id="view-transaction" class="view-section" hidden></section>
       <section id="view-statement" class="view-section" hidden></section>
+      <section id="view-savings" class="view-section" hidden></section>
+      <section id="view-salary" class="view-section" hidden></section>
       <section id="view-receipt" class="view-section" hidden></section>
       <section id="view-settings" class="view-section" hidden></section>
     </main>
   </div>
 
   <div id="wizard-overlay" class="wizard-overlay" hidden></div>
-
-  <div id="alert-container" style="position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px;"></div>
+  <div id="alert-container" style="position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:380px;width:100%;"></div>
 </body>
 </html>

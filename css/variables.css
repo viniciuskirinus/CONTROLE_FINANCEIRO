@@ -1,61 +1,119 @@
 :root {
-  /* Paleta Indigo (D-14) */
-  --color-primary: #1a237e;
-  --color-secondary: #3949ab;
-  --color-primary-light: #534bae;
-  --color-primary-dark: #000051;
+  /* Accent */
+  --accent: #4f46e5;
+  --accent-light: #6366f1;
+  --accent-muted: rgba(79, 70, 229, 0.12);
 
-  /* Semânticas */
-  --color-income: #2e7d32;
-  --color-expense: #c62828;
-  --color-warning: #e65100;
-  --color-info: #1565c0;
+  /* Semantic */
+  --color-income: #10b981;
+  --color-income-bg: rgba(16, 185, 129, 0.1);
+  --color-expense: #ef4444;
+  --color-expense-bg: rgba(239, 68, 68, 0.1);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.1);
 
-  /* Superfícies */
-  --color-bg: #f5f7ff;
-  --color-card: #ffffff;
-  --color-surface-hover: #eef1fb;
-  --color-text: #263238;
-  --color-text-secondary: #607d8b;
-  --color-border: #dde1f2;
+  /* Surfaces - Light */
+  --bg-body: #f8f9fc;
+  --bg-card: #ffffff;
+  --bg-sidebar: #111827;
+  --bg-input: #ffffff;
+  --bg-hover: #f1f5f9;
+  --bg-active: rgba(79, 70, 229, 0.08);
 
-  /* Alert backgrounds */
-  --color-alert-success-bg: #e8f5e9;
-  --color-alert-error-bg: #ffebee;
-  --color-alert-info-bg: #e3f2fd;
-  --color-alert-warning-bg: #fff3e0;
+  /* Text - Light */
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+  --text-on-sidebar: rgba(255, 255, 255, 0.7);
+  --text-on-sidebar-active: #ffffff;
+
+  /* Borders - Light */
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* Shadows - Light */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 
   /* Layout */
-  --sidebar-width: 240px;
-  --sidebar-width-collapsed: 64px;
-  --radius: 8px;
-  --radius-lg: 12px;
+  --sidebar-w: 220px;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
 
-  /* Tipografia */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-size-xs: 11px;
-  --font-size-base: 14px;
-  --font-size-sm: 12px;
-  --font-size-lg: 16px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 26px;
-  --font-size-3xl: 32px;
+  /* Typography */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.625rem;
+  --text-3xl: 2rem;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
 
   /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
+  --ease: 200ms ease;
+  --ease-slow: 350ms ease;
 
-  /* Spacing scale 8-point */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 64px;
+  /* Chart */
+  --chart-1: #4f46e5;
+  --chart-2: #06b6d4;
+  --chart-3: #8b5cf6;
+  --chart-4: #f59e0b;
+  --chart-5: #10b981;
+  --chart-6: #ef4444;
+  --chart-7: #ec4899;
+}
+
+[data-theme="dark"] {
+  --bg-body: #0b0f1a;
+  --bg-card: #141825;
+  --bg-sidebar: #0b0f1a;
+  --bg-input: #1e2235;
+  --bg-hover: #1e2235;
+  --bg-active: rgba(99, 102, 241, 0.15);
+
+  --text-primary: #e8eaf0;
+  --text-secondary: #8b92a8;
+  --text-tertiary: #5a6178;
+  --text-on-sidebar: rgba(255, 255, 255, 0.55);
+
+  --border: #232840;
+  --border-light: #1e2235;
+
+  --accent: #818cf8;
+  --accent-light: #a5b4fc;
+  --accent-muted: rgba(129, 140, 248, 0.15);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255,255,255,0.03);
+
+  --color-income: #34d399;
+  --color-income-bg: rgba(52, 211, 153, 0.12);
+  --color-expense: #f87171;
+  --color-expense-bg: rgba(248, 113, 113, 0.12);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.12);
+  --color-info: #60a5fa;
+  --color-info-bg: rgba(96, 165, 250, 0.12);
 }

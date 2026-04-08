@@ -4,6 +4,7 @@ import { isWizardDone, getRepoConfig, saveRepoConfig } from '../modules/storage.
 import { formatCurrency } from '../modules/format.js';
 import { showAlert } from '../app.js';
 import { getGeminiKey, saveGeminiKey, isGeminiConfigured, testApiKey, getGeminiModel, saveGeminiModel, getAvailableModels } from '../modules/gemini.js';
+import { hashPin, logout } from '../modules/auth.js';
 
 let state = {
   config: null,
@@ -68,34 +69,34 @@ function buildAccordion(key, title, contentFn) {
 function renderPersonCard(person) {
   if (state.editingPersonId === person.id) return renderPersonForm(person);
 
-  const card = el('div', { className: 'card', style: { marginBottom: 'var(--space-md)', borderLeft: `4px solid ${person.color || 'var(--color-secondary)'}` } });
+  const card = el('div', { className: 'card', style: { marginBottom: 'var(--sp-4)', borderLeft: `4px solid ${person.color || 'var(--accent)'}` } });
 
-  const row = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-md)' } });
+  const row = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--sp-4)' } });
 
   const info = el('div', { style: { flex: '1' } });
   info.append(
-    el('div', { style: { fontWeight: '700', fontSize: 'var(--font-size-lg)', marginBottom: 'var(--space-sm)', textTransform: 'capitalize' } }, person.name),
-    el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 'var(--space-sm)' } },
+    el('div', { style: { fontWeight: '700', fontSize: 'var(--text-lg)', marginBottom: 'var(--sp-2)', textTransform: 'capitalize' } }, person.name),
+    el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 'var(--sp-2)' } },
       el('div', {},
-        el('span', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' } }, 'Salário: '),
+        el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Salário: '),
         el('strong', {}, formatCurrency(person.salary || 0))
       ),
       el('div', {},
-        el('span', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' } }, 'Meta mensal: '),
+        el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Meta mensal: '),
         el('strong', {}, formatCurrency(person.monthlyGoal || 0))
       ),
       el('div', {},
-        el('span', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' } }, 'Fechamento: '),
+        el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Fechamento: '),
         el('strong', {}, `Dia ${person.creditCard?.closingDay || '-'}`)
       ),
       el('div', {},
-        el('span', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' } }, 'Pagamento: '),
+        el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Pagamento: '),
         el('strong', {}, `Dia ${person.creditCard?.paymentDay || '-'}`)
       )
     )
   );
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-xs)', flexShrink: '0' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-1)', flexShrink: '0' } });
   actions.append(
     el('button', { className: 'btn-icon', title: 'Editar', onClick: () => { state.editingPersonId = person.id; render(); } }, '✏️'),
     el('button', { className: 'btn-icon', title: 'Remover', onClick: () => removePerson(person.id) }, '🗑️')
@@ -110,12 +111,12 @@ function renderPersonForm(person) {
   const isNew = !person;
   const data = person || { id: nextId(state.config.people), name: '', salary: 0, savingsGoal: 0, monthlyGoal: 0, color: '#3949ab', creditCard: { closingDay: 5, paymentDay: 10 } };
 
-  const card = el('div', { className: 'card', style: { marginBottom: 'var(--space-md)', borderLeft: '4px solid var(--color-secondary)' } });
-  const title = el('div', { style: { fontWeight: '700', fontSize: 'var(--font-size-lg)', marginBottom: 'var(--space-md)' } }, isNew ? 'Nova Pessoa' : `Editando: ${data.name}`);
+  const card = el('div', { className: 'card', style: { marginBottom: 'var(--sp-4)', borderLeft: '4px solid var(--accent)' } });
+  const title = el('div', { style: { fontWeight: '700', fontSize: 'var(--text-lg)', marginBottom: 'var(--sp-4)' } }, isNew ? 'Nova Pessoa' : `Editando: ${data.name}`);
 
   const form = el('div');
 
-  const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-md)' } });
+  const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--sp-4)' } });
 
   grid.append(
     buildFormGroup('Nome *', el('input', { className: 'form-input', type: 'text', value: data.name, id: `person-name-${data.id}`, placeholder: 'Nome da pessoa', required: 'true' })),
@@ -127,7 +128,7 @@ function renderPersonForm(person) {
     buildFormGroup('Cor', el('input', { className: 'form-input', type: 'color', value: data.color || '#3949ab', id: `person-color-${data.id}`, style: { height: '38px', padding: '2px' } }))
   );
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-4)' } });
   actions.append(
     el('button', { className: 'btn btn-primary', onClick: () => savePerson(data.id, isNew) }, '💾 Salvar'),
     el('button', { className: 'btn btn-ghost', onClick: () => { state.editingPersonId = null; if (isNew) render(); else render(); } }, 'Cancelar')
@@ -248,24 +249,24 @@ function renderCategoryRow(cat, type, index) {
 
   const row = el('div', {
     style: {
-      display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
-      padding: 'var(--space-sm) 0',
-      borderBottom: '1px solid var(--color-border)'
+      display: 'flex', alignItems: 'center', gap: 'var(--sp-4)',
+      padding: 'var(--sp-2) 0',
+      borderBottom: '1px solid var(--border)'
     }
   });
 
   const icon = el('span', { style: { fontSize: '20px', flexShrink: '0' } }, cat.icon || '📁');
-  const name = el('span', { style: { fontWeight: '700', color: cat.color || 'var(--color-text)', minWidth: '120px' } }, cat.name);
+  const name = el('span', { style: { fontWeight: '700', color: cat.color || 'var(--text-primary)', minWidth: '120px' } }, cat.name);
 
   const chips = el('div', { className: 'chip-list', style: { flex: '1' } });
   (cat.subcategories || []).forEach(sub => {
     chips.append(el('span', { className: 'chip' }, sub));
   });
   if (!cat.subcategories?.length) {
-    chips.append(el('span', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' } }, 'Sem subcategorias'));
+    chips.append(el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', fontStyle: 'italic' } }, 'Sem subcategorias'));
   }
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-xs)', flexShrink: '0' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-1)', flexShrink: '0' } });
   actions.append(
     el('button', { className: 'btn-icon', title: 'Editar', onClick: () => { state.editingCategory = editKey; render(); } }, '✏️'),
     el('button', { className: 'btn-icon', title: 'Remover', onClick: () => removeCategory(type, index) }, '🗑️')
@@ -283,22 +284,22 @@ function renderCategoryForm(cat, type, index) {
 
   const wrapper = el('div', {
     className: 'card',
-    style: { marginBottom: 'var(--space-sm)', padding: 'var(--space-md)', border: '2px solid var(--color-secondary)' }
+    style: { marginBottom: 'var(--sp-2)', padding: 'var(--sp-4)', border: '2px solid var(--accent)' }
   });
 
-  const title = el('div', { style: { fontWeight: '700', marginBottom: 'var(--space-md)' } }, isNew ? 'Nova Categoria' : `Editando: ${data.name}`);
+  const title = el('div', { style: { fontWeight: '700', marginBottom: 'var(--sp-4)' } }, isNew ? 'Nova Categoria' : `Editando: ${data.name}`);
 
-  const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 'var(--space-md)' } });
+  const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 'var(--sp-4)' } });
   grid.append(
     buildFormGroup('Nome *', el('input', { className: 'form-input', type: 'text', value: data.name, id: `${formId}-name`, placeholder: 'Nome da categoria' })),
     buildFormGroup('Ícone', el('input', { className: 'form-input', type: 'text', value: data.icon, id: `${formId}-icon`, placeholder: '📁', style: { width: '60px' } })),
     buildFormGroup('Cor', el('input', { className: 'form-input', type: 'color', value: data.color || '#78909c', id: `${formId}-color`, style: { height: '38px', padding: '2px' } }))
   );
 
-  const subSection = el('div', { style: { marginTop: 'var(--space-md)' } });
+  const subSection = el('div', { style: { marginTop: 'var(--sp-4)' } });
   subSection.append(el('label', { className: 'form-label' }, 'Subcategorias'));
 
-  const chipContainer = el('div', { className: 'chip-list', id: `${formId}-chips`, style: { marginTop: 'var(--space-xs)', marginBottom: 'var(--space-sm)' } });
+  const chipContainer = el('div', { className: 'chip-list', id: `${formId}-chips`, style: { marginTop: 'var(--sp-1)', marginBottom: 'var(--sp-2)' } });
 
   function refreshChips() {
     chipContainer.innerHTML = '';
@@ -310,12 +311,12 @@ function renderCategoryForm(cat, type, index) {
       chipContainer.append(chip);
     });
     if (!subs.length) {
-      chipContainer.append(el('span', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' } }, 'Nenhuma subcategoria'));
+      chipContainer.append(el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', fontStyle: 'italic' } }, 'Nenhuma subcategoria'));
     }
   }
   refreshChips();
 
-  const addSubRow = el('div', { style: { display: 'flex', gap: 'var(--space-sm)' } });
+  const addSubRow = el('div', { style: { display: 'flex', gap: 'var(--sp-2)' } });
   const subInput = el('input', { className: 'form-input', type: 'text', placeholder: 'Nova subcategoria', style: { flex: '1' } });
   const addSubBtn = el('button', { className: 'btn btn-ghost', onClick: () => {
     const val = subInput.value.trim();
@@ -330,7 +331,7 @@ function renderCategoryForm(cat, type, index) {
 
   subSection.append(chipContainer, addSubRow);
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-4)' } });
   actions.append(
     el('button', { className: 'btn btn-primary', onClick: () => saveCategory(type, index, formId, subs) }, '💾 Salvar'),
     el('button', { className: 'btn btn-ghost', onClick: () => { state.editingCategory = null; render(); } }, 'Cancelar')
@@ -413,13 +414,13 @@ function buildCategoriesContent(container) {
     const subtitle = el('div', {
       style: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 'var(--space-sm)', marginTop: 'var(--space-md)',
-        paddingBottom: 'var(--space-xs)', borderBottom: `2px solid ${color}`
+        marginBottom: 'var(--sp-2)', marginTop: 'var(--sp-4)',
+        paddingBottom: 'var(--sp-1)', borderBottom: `2px solid ${color}`
       }
     });
     subtitle.append(
-      el('span', { style: { fontWeight: '700', fontSize: 'var(--font-size-lg)', color } }, label),
-      el('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' } }, `${cats[key].length} categorias`)
+      el('span', { style: { fontWeight: '700', fontSize: 'var(--text-lg)', color } }, label),
+      el('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } }, `${cats[key].length} categorias`)
     );
     container.append(subtitle);
 
@@ -435,7 +436,7 @@ function buildCategoriesContent(container) {
       container.append(
         el('button', {
           className: 'btn btn-ghost',
-          style: { width: '100%', marginTop: 'var(--space-sm)', marginBottom: 'var(--space-md)' },
+          style: { width: '100%', marginTop: 'var(--sp-2)', marginBottom: 'var(--sp-4)' },
           onClick: () => { state.editingCategory = `${key}--1`; render(); }
         }, `➕ Adicionar ${key === 'expense' ? 'Despesa' : 'Receita'}`)
       );
@@ -452,24 +453,24 @@ function buildBudgetContent(container) {
   const budgets = state.config?.budgets || {};
 
   if (!people.length) {
-    container.append(el('p', { style: { color: 'var(--color-text-secondary)', fontStyle: 'italic' } }, 'Adicione pessoas primeiro.'));
+    container.append(el('p', { style: { color: 'var(--text-secondary)', fontStyle: 'italic' } }, 'Adicione pessoas primeiro.'));
     return;
   }
 
   if (!expenseCategories.length) {
-    container.append(el('p', { style: { color: 'var(--color-text-secondary)', fontStyle: 'italic' } }, 'Adicione categorias de despesa primeiro.'));
+    container.append(el('p', { style: { color: 'var(--text-secondary)', fontStyle: 'italic' } }, 'Adicione categorias de despesa primeiro.'));
     return;
   }
 
   if (people.length > 1) {
     const selected = state.budgetPerson || people[0].name;
 
-    const selectorRow = el('div', { style: { marginBottom: 'var(--space-lg)' } });
+    const selectorRow = el('div', { style: { marginBottom: 'var(--sp-6)' } });
     selectorRow.append(el('label', { className: 'form-label' }, 'Pessoa'));
 
     const select = el('select', {
       className: 'form-select',
-      style: { width: '100%', marginTop: 'var(--space-xs)' },
+      style: { width: '100%', marginTop: 'var(--sp-1)' },
       onChange: (e) => { state.budgetPerson = e.target.value; render(); }
     });
 
@@ -517,7 +518,7 @@ function buildBudgetContent(container) {
 
   container.append(grid);
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-6)' } });
   actions.append(
     el('button', { className: 'btn btn-primary', onClick: () => saveBudgets(personName, expenseCategories) }, '💾 Salvar Orçamento'),
     el('button', { className: 'btn btn-ghost', onClick: () => clearBudgets(personName) }, '🗑️ Limpar')
@@ -599,8 +600,8 @@ function buildPaymentContent(container) {
     const row = el('div', {
       style: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 'var(--space-sm) var(--space-xs)',
-        borderBottom: '1px solid var(--color-border)'
+        padding: 'var(--sp-2) var(--sp-1)',
+        borderBottom: '1px solid var(--border)'
       }
     });
     row.append(
@@ -611,7 +612,7 @@ function buildPaymentContent(container) {
   });
 
   if (!methods.length) {
-    list.append(el('div', { className: 'empty-state', style: { padding: 'var(--space-lg)' } },
+    list.append(el('div', { className: 'empty-state', style: { padding: 'var(--sp-6)' } },
       el('div', { className: 'empty-icon' }, '💳'),
       el('p', {}, 'Nenhum método de pagamento cadastrado.')
     ));
@@ -619,7 +620,7 @@ function buildPaymentContent(container) {
 
   container.append(list);
 
-  const addRow = el('div', { style: { display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-md)' } });
+  const addRow = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-4)' } });
   const input = el('input', { className: 'form-input', type: 'text', placeholder: 'Novo método (ex: Pix)', style: { flex: '1' }, id: 'new-payment-method' });
   const addBtn = el('button', { className: 'btn btn-primary', onClick: addPaymentMethod }, '➕ Adicionar');
   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); } });
@@ -682,7 +683,7 @@ function removePaymentMethod(index) {
 function buildRepoContent(container) {
   const repo = getRepoConfig();
 
-  const form = el('div', { style: { display: 'grid', gap: 'var(--space-md)' } });
+  const form = el('div', { style: { display: 'grid', gap: 'var(--sp-4)' } });
 
   const ownerGroup = el('div', { className: 'form-group' });
   ownerGroup.append(
@@ -702,9 +703,9 @@ function buildRepoContent(container) {
     Object.assign(el('input', { className: 'form-input', type: 'password', id: 'set-repo-pat', placeholder: 'github_pat_...' }), { value: repo.pat || '' })
   );
 
-  const statusEl = el('div', { id: 'repo-conn-status', style: { marginTop: 'var(--space-sm)' } });
+  const statusEl = el('div', { id: 'repo-conn-status', style: { marginTop: 'var(--sp-2)' } });
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-2)' } });
 
   const testBtn = el('button', { className: 'btn btn-ghost', type: 'button' }, '🔗 Testar Conexão');
   const saveBtn = el('button', { className: 'btn btn-primary', type: 'button' }, '💾 Salvar');
@@ -765,7 +766,7 @@ function buildRepoContent(container) {
 
   container.append(form);
 
-  const helpText = el('div', { style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-md)', lineHeight: '1.6' } });
+  const helpText = el('div', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)', lineHeight: '1.6' } });
   helpText.append(
     el('p', {}, '📦 Tudo (owner, repo e PAT) é salvo no config.json do GitHub.'),
     el('p', {}, '✅ Ao limpar dados do navegador, tudo será restaurado automaticamente.')
@@ -780,7 +781,7 @@ function buildGeminiContent(container) {
   const currentKey = getGeminiKey();
 
   const statusRow = el('div', {
-    style: { display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }
+    style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-6)' }
   });
   statusRow.append(
     el('span', { style: { fontSize: '20px' } }, configured ? '✅' : '⚠️'),
@@ -791,7 +792,7 @@ function buildGeminiContent(container) {
   const keyGroup = el('div', { className: 'form-group' });
   keyGroup.append(el('label', { className: 'form-label' }, 'Chave da API'));
 
-  const inputRow = el('div', { style: { display: 'flex', gap: 'var(--space-sm)' } });
+  const inputRow = el('div', { style: { display: 'flex', gap: 'var(--sp-2)' } });
   const keyInput = el('input', {
     className: 'form-input',
     type: 'password',
@@ -818,7 +819,7 @@ function buildGeminiContent(container) {
   keyGroup.append(inputRow);
   container.append(keyGroup);
 
-  const modelGroup = el('div', { className: 'form-group', style: { marginTop: 'var(--space-md)' } });
+  const modelGroup = el('div', { className: 'form-group', style: { marginTop: 'var(--sp-4)' } });
   modelGroup.append(el('label', { className: 'form-label' }, 'Modelo'));
   const modelSelect = el('select', { className: 'form-input', id: 'gemini-model-select' });
   const currentModel = getGeminiModel();
@@ -830,7 +831,7 @@ function buildGeminiContent(container) {
   modelGroup.append(modelSelect);
   container.append(modelGroup);
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-md)', flexWrap: 'wrap' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-4)', flexWrap: 'wrap' } });
 
   const saveBtn = el('button', {
     className: 'btn btn-primary',
@@ -896,13 +897,113 @@ function buildGeminiContent(container) {
   container.append(actions);
 
   const infoText = el('p', {
-    style: { color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-lg)', lineHeight: '1.5' }
+    style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-6)', lineHeight: '1.5' }
   });
   infoText.append(
     document.createTextNode('📦 Chave e modelo são salvos no config.json do GitHub. Obtenha sua chave em: '),
-    el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', style: { color: 'var(--color-secondary)' } }, 'aistudio.google.com')
+    el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', style: { color: 'var(--accent)' } }, 'aistudio.google.com')
   );
   container.append(infoText);
+}
+
+// ─── Security Section ───
+
+function buildSecurityContent(container) {
+  const hasPinHash = !!state.config?.pinHash;
+
+  const statusRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-5)' } });
+  statusRow.append(
+    el('span', { style: { fontSize: '20px' } }, hasPinHash ? '🔒' : '🔓'),
+    el('span', { style: { fontWeight: '600' } }, hasPinHash ? 'PIN ativo — login necessário ao abrir o app' : 'Sem PIN — acesso livre')
+  );
+  container.append(statusRow);
+
+  const newPinGroup = el('div', { className: 'form-group' });
+  newPinGroup.append(
+    el('label', { className: 'form-label' }, hasPinHash ? 'Novo PIN (deixe vazio para manter)' : 'Defina um PIN'),
+    el('input', { className: 'form-input', type: 'password', id: 'security-pin', placeholder: 'Ex: 1234', maxlength: '20' })
+  );
+  container.append(newPinGroup);
+
+  const confirmGroup = el('div', { className: 'form-group' });
+  confirmGroup.append(
+    el('label', { className: 'form-label' }, 'Confirme o PIN'),
+    el('input', { className: 'form-input', type: 'password', id: 'security-pin-confirm', placeholder: 'Repita o PIN', maxlength: '20' })
+  );
+  container.append(confirmGroup);
+
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' } });
+  actions.append(
+    el('button', { className: 'btn btn-primary', onClick: savePin }, 'Salvar PIN'),
+  );
+  if (hasPinHash) {
+    actions.append(
+      el('button', { className: 'btn btn-danger', onClick: removePin }, 'Remover PIN'),
+      el('button', { className: 'btn btn-ghost', onClick: () => { logout(); showAlert('Sessão encerrada. Recarregue a página.', 'info'); } }, 'Sair (Logout)')
+    );
+  }
+  container.append(actions);
+
+  container.append(
+    el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)', lineHeight: '1.6' } },
+      'O PIN é armazenado como hash SHA-256 no config.json. A sessão dura enquanto a aba estiver aberta.'
+    )
+  );
+}
+
+async function savePin() {
+  const pin = document.getElementById('security-pin')?.value;
+  const confirm2 = document.getElementById('security-pin-confirm')?.value;
+  if (!pin) { showAlert('Digite um PIN.', 'error'); return; }
+  if (pin !== confirm2) { showAlert('PINs não conferem.', 'error'); return; }
+
+  state.saving = true;
+  render();
+
+  try {
+    const pinHash = await hashPin(pin);
+    const updatedConfig = { ...state.config, pinHash, _schema_version: state.config._schema_version || 1 };
+    const result = await dispatch('update-config', updatedConfig);
+    if (result.success) {
+      state.config.pinHash = pinHash;
+      putCacheEntry('config', updatedConfig);
+      showAlert('PIN definido com sucesso!', 'success');
+    } else {
+      showAlert(`Erro ao salvar PIN: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[savePin]', err);
+    showAlert('Erro inesperado.', 'error');
+  } finally {
+    state.saving = false;
+    render();
+  }
+}
+
+async function removePin() {
+  if (!confirm('Remover o PIN? Qualquer pessoa poderá acessar o sistema.')) return;
+
+  state.saving = true;
+  render();
+
+  try {
+    const { pinHash: _, ...rest } = state.config;
+    const updatedConfig = { ...rest, _schema_version: state.config._schema_version || 1 };
+    const result = await dispatch('update-config', updatedConfig);
+    if (result.success) {
+      delete state.config.pinHash;
+      putCacheEntry('config', updatedConfig);
+      showAlert('PIN removido.', 'success');
+    } else {
+      showAlert(`Erro: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[removePin]', err);
+    showAlert('Erro inesperado.', 'error');
+  } finally {
+    state.saving = false;
+    render();
+  }
 }
 
 // ─── Main Render ───
@@ -913,20 +1014,21 @@ function render() {
   section.innerHTML = '';
 
   const header = el('div', { className: 'section-header' });
-  header.append(el('h2', {}, '⚙️ Configurações'));
+  header.append(el('h2', {}, 'Configuracoes'));
   if (state.saving) {
-    const spinner = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' } });
-    spinner.append(el('div', { className: 'spinner spinner-sm' }), el('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' } }, 'Salvando...'));
+    const spinner = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' } });
+    spinner.append(el('div', { className: 'spinner spinner-sm' }), el('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } }, 'Salvando...'));
     header.append(spinner);
   }
   section.append(header);
 
-  section.append(buildAccordion('pessoas', '👤 Pessoas', buildPeopleContent));
-  section.append(buildAccordion('categorias', '🏷️ Categorias', buildCategoriesContent));
-  section.append(buildAccordion('orcamento', '📊 Orçamento', buildBudgetContent));
-  section.append(buildAccordion('pagamento', '💳 Métodos de Pagamento', buildPaymentContent));
-  section.append(buildAccordion('repo', '🔗 Repositório', buildRepoContent));
-  section.append(buildAccordion('gemini', '🤖 Gemini AI', buildGeminiContent));
+  section.append(buildAccordion('seguranca', 'Seguranca', buildSecurityContent));
+  section.append(buildAccordion('pessoas', 'Pessoas', buildPeopleContent));
+  section.append(buildAccordion('categorias', 'Categorias', buildCategoriesContent));
+  section.append(buildAccordion('orcamento', 'Orcamento', buildBudgetContent));
+  section.append(buildAccordion('pagamento', 'Metodos de Pagamento', buildPaymentContent));
+  section.append(buildAccordion('repo', 'Repositorio', buildRepoContent));
+  section.append(buildAccordion('gemini', 'Gemini AI', buildGeminiContent));
 }
 
 // ─── Init ───
@@ -946,7 +1048,7 @@ export async function initSettings() {
   }
 
   section.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;padding:var(--space-2xl);">
+    <div style="display:flex;align-items:center;justify-content:center;padding:var(--sp-10);">
       <div class="spinner spinner-lg"></div>
     </div>
   `;

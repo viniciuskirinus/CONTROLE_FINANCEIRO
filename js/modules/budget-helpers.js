@@ -55,7 +55,7 @@ export function renderBudgetSection(container, personName, transactions, categor
   if (!statuses.length) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
-    empty.style.padding = 'var(--space-lg)';
+    empty.style.padding = 'var(--sp-6)';
     empty.innerHTML = `
       <div class="empty-icon">📊</div>
       <p>Configure orçamentos nas <strong>Configurações</strong></p>
