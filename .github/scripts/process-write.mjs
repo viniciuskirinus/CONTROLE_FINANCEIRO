@@ -68,6 +68,7 @@ function handleCreateTransaction(txn, yearMonth) {
   txn.id = file.lastId;
   txn.createdAt = new Date().toISOString();
   file.transactions.push(txn);
+  file.updatedAt = new Date().toISOString();
 
   writeJSONFile(filePath, file);
   console.log(`Created transaction ${txn.id} in ${month}`);
@@ -95,6 +96,7 @@ function handleEditTransaction(txn, yearMonth) {
 
   Object.assign(file.transactions[idx], txn);
   file.transactions[idx].updatedAt = new Date().toISOString();
+  file.updatedAt = new Date().toISOString();
 
   writeJSONFile(filePath, file);
   console.log(`Updated transaction ${txn.id} in ${yearMonth}`);
@@ -118,6 +120,7 @@ function handleDeleteTransaction(payload, yearMonth) {
   const before = file.transactions.length;
   file.transactions = file.transactions.filter(t => !idsSet.has(t.id));
   const removed = before - file.transactions.length;
+  file.updatedAt = new Date().toISOString();
 
   writeJSONFile(filePath, file);
   console.log(`Deleted ${removed} transaction(s) from ${yearMonth}`);

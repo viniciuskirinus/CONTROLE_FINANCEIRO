@@ -1,4 +1,4 @@
-import { getConfig, getCategories, getPaymentMethods, invalidateCache } from '../modules/data-service.js';
+import { getConfig, getCategories, getPaymentMethods, invalidateCache, putCacheEntry } from '../modules/data-service.js';
 import { dispatch, testConnection } from '../modules/github-api.js';
 import { isWizardDone, getRepoConfig, saveRepoConfig } from '../modules/storage.js';
 import { formatCurrency } from '../modules/format.js';
@@ -173,18 +173,25 @@ async function savePerson(id, isNew) {
   state.saving = true;
   render();
 
-  const result = await dispatch('update-config', { ...state.config, people, _schema_version: state.config._schema_version });
+  try {
+    const updatedConfig = { ...state.config, people, _schema_version: state.config._schema_version };
+    const result = await dispatch('update-config', updatedConfig);
 
-  state.saving = false;
-  if (result.success) {
-    state.config.people = people;
-    state.editingPersonId = null;
-    invalidateCache('config');
-    showAlert('Pessoa salva com sucesso!', 'success');
-  } else {
-    showAlert(`Erro ao salvar: ${result.error}`, 'error');
+    if (result.success) {
+      state.config.people = people;
+      state.editingPersonId = null;
+      putCacheEntry('config', updatedConfig);
+      showAlert('Pessoa salva! (sincronizando com GitHub...)', 'success');
+    } else {
+      showAlert(`Erro ao salvar: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[savePerson] erro:', err);
+    showAlert('Erro inesperado ao salvar pessoa.', 'error');
+  } finally {
+    state.saving = false;
+    render();
   }
-  render();
 }
 
 function removePerson(id) {
@@ -197,15 +204,19 @@ function removePerson(id) {
 
   const people = state.config.people.filter(p => p.id !== id);
   state.config.people = people;
+  const updatedConfig = { ...state.config, people, _schema_version: state.config._schema_version };
+  putCacheEntry('config', updatedConfig);
   render();
 
-  dispatch('update-config', { ...state.config, people, _schema_version: state.config._schema_version }).then(result => {
+  dispatch('update-config', updatedConfig).then(result => {
     if (result.success) {
-      invalidateCache('config');
-      showAlert('Pessoa removida!', 'success');
+      showAlert('Pessoa removida! (sincronizando...)', 'success');
     } else {
       showAlert(`Erro ao remover: ${result.error}`, 'error');
     }
+  }).catch(err => {
+    console.error('[removePerson] erro:', err);
+    showAlert('Erro ao sincronizar remoção.', 'error');
   });
 }
 
@@ -350,18 +361,24 @@ async function saveCategory(type, index, formId, subs) {
   state.saving = true;
   render();
 
-  const result = await dispatch('update-categories', cats);
+  try {
+    const result = await dispatch('update-categories', cats);
 
-  state.saving = false;
-  if (result.success) {
-    state.categories = cats;
-    state.editingCategory = null;
-    invalidateCache('categories');
-    showAlert('Categoria salva!', 'success');
-  } else {
-    showAlert(`Erro ao salvar: ${result.error}`, 'error');
+    if (result.success) {
+      state.categories = cats;
+      state.editingCategory = null;
+      putCacheEntry('categories', cats);
+      showAlert('Categoria salva! (sincronizando...)', 'success');
+    } else {
+      showAlert(`Erro ao salvar: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[saveCategory] erro:', err);
+    showAlert('Erro inesperado ao salvar categoria.', 'error');
+  } finally {
+    state.saving = false;
+    render();
   }
-  render();
 }
 
 function removeCategory(type, index) {
@@ -371,15 +388,18 @@ function removeCategory(type, index) {
   const cats = JSON.parse(JSON.stringify(state.categories));
   cats[type].splice(index, 1);
   state.categories = cats;
+  putCacheEntry('categories', cats);
   render();
 
   dispatch('update-categories', cats).then(result => {
     if (result.success) {
-      invalidateCache('categories');
-      showAlert('Categoria removida!', 'success');
+      showAlert('Categoria removida! (sincronizando...)', 'success');
     } else {
       showAlert(`Erro ao remover: ${result.error}`, 'error');
     }
+  }).catch(err => {
+    console.error('[removeCategory] erro:', err);
+    showAlert('Erro ao sincronizar remoção.', 'error');
   });
 }
 
@@ -520,17 +540,24 @@ async function saveBudgets(personName, expenseCategories) {
   state.saving = true;
   render();
 
-  const result = await dispatch('update-config', { ...state.config, budgets, _schema_version: state.config._schema_version });
+  try {
+    const updatedConfig = { ...state.config, budgets, _schema_version: state.config._schema_version };
+    const result = await dispatch('update-config', updatedConfig);
 
-  state.saving = false;
-  if (result.success) {
-    state.config.budgets = budgets;
-    invalidateCache('config');
-    showAlert('Orçamento salvo com sucesso!', 'success');
-  } else {
-    showAlert(`Erro ao salvar orçamento: ${result.error}`, 'error');
+    if (result.success) {
+      state.config.budgets = budgets;
+      putCacheEntry('config', updatedConfig);
+      showAlert('Orçamento salvo! (sincronizando...)', 'success');
+    } else {
+      showAlert(`Erro ao salvar orçamento: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[saveBudgets] erro:', err);
+    showAlert('Erro inesperado ao salvar orçamento.', 'error');
+  } finally {
+    state.saving = false;
+    render();
   }
-  render();
 }
 
 async function clearBudgets(personName) {
@@ -542,17 +569,24 @@ async function clearBudgets(personName) {
   state.saving = true;
   render();
 
-  const result = await dispatch('update-config', { ...state.config, budgets, _schema_version: state.config._schema_version });
+  try {
+    const updatedConfig = { ...state.config, budgets, _schema_version: state.config._schema_version };
+    const result = await dispatch('update-config', updatedConfig);
 
-  state.saving = false;
-  if (result.success) {
-    state.config.budgets = budgets;
-    invalidateCache('config');
-    showAlert('Orçamento limpo!', 'success');
-  } else {
-    showAlert(`Erro ao limpar orçamento: ${result.error}`, 'error');
+    if (result.success) {
+      state.config.budgets = budgets;
+      putCacheEntry('config', updatedConfig);
+      showAlert('Orçamento limpo! (sincronizando...)', 'success');
+    } else {
+      showAlert(`Erro ao limpar orçamento: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[clearBudgets] erro:', err);
+    showAlert('Erro inesperado.', 'error');
+  } finally {
+    state.saving = false;
+    render();
   }
-  render();
 }
 
 // ─── Payment Methods Section ───
@@ -606,14 +640,19 @@ async function addPaymentMethod() {
   methods.push(value);
 
   state.paymentMethods = { ...state.paymentMethods, methods };
+  putCacheEntry('payment-methods', { ...state.paymentMethods });
   render();
 
-  const result = await dispatch('update-payment-methods', { methods });
-  if (result.success) {
-    invalidateCache('payment-methods');
-    showAlert('Método adicionado!', 'success');
-  } else {
-    showAlert(`Erro ao adicionar: ${result.error}`, 'error');
+  try {
+    const result = await dispatch('update-payment-methods', { methods });
+    if (result.success) {
+      showAlert('Método adicionado! (sincronizando...)', 'success');
+    } else {
+      showAlert(`Erro ao adicionar: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('[addPaymentMethod] erro:', err);
+    showAlert('Erro ao sincronizar.', 'error');
   }
 }
 
@@ -623,15 +662,18 @@ function removePaymentMethod(index) {
 
   const methods = state.paymentMethods.methods.filter((_, i) => i !== index);
   state.paymentMethods = { ...state.paymentMethods, methods };
+  putCacheEntry('payment-methods', { ...state.paymentMethods });
   render();
 
   dispatch('update-payment-methods', { methods }).then(result => {
     if (result.success) {
-      invalidateCache('payment-methods');
-      showAlert('Método removido!', 'success');
+      showAlert('Método removido! (sincronizando...)', 'success');
     } else {
       showAlert(`Erro ao remover: ${result.error}`, 'error');
     }
+  }).catch(err => {
+    console.error('[removePaymentMethod] erro:', err);
+    showAlert('Erro ao sincronizar remoção.', 'error');
   });
 }
 

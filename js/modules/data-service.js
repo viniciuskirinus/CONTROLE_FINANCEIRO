@@ -1,5 +1,22 @@
 const BASE_URL = '.';
 const cache = new Map();
+const LOCAL_PREFIX = 'fvk_data_';
+
+function getLocalData(key) {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_PREFIX + key));
+  } catch { return null; }
+}
+
+function setLocalData(key, data) {
+  try {
+    localStorage.setItem(LOCAL_PREFIX + key, JSON.stringify({ ...data, _savedAt: new Date().toISOString() }));
+  } catch { /* localStorage full */ }
+}
+
+function clearLocalData(key) {
+  localStorage.removeItem(LOCAL_PREFIX + key);
+}
 
 export async function getConfig() {
   return fetchJSON(`${BASE_URL}/data/config.json`, 'config');
@@ -22,13 +39,37 @@ export async function getPaymentMethods() {
 
 async function fetchJSON(url, cacheKey) {
   if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const local = getLocalData(cacheKey);
+
   try {
     const resp = await fetch(url, { cache: 'no-cache' });
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    cache.set(cacheKey, data);
-    return data;
+    if (!resp.ok) {
+      if (local) {
+        cache.set(cacheKey, local);
+        return local;
+      }
+      return null;
+    }
+    const remote = await resp.json();
+
+    if (local?._savedAt) {
+      const remoteTime = remote.updatedAt ? new Date(remote.updatedAt).getTime() : 0;
+      const localTime = new Date(local._savedAt).getTime();
+      if (localTime > remoteTime) {
+        cache.set(cacheKey, local);
+        return local;
+      }
+      clearLocalData(cacheKey);
+    }
+
+    cache.set(cacheKey, remote);
+    return remote;
   } catch {
+    if (local) {
+      cache.set(cacheKey, local);
+      return local;
+    }
     return null;
   }
 }
@@ -40,4 +81,5 @@ export function invalidateCache(key) {
 
 export function putCacheEntry(key, data) {
   cache.set(key, data);
+  setLocalData(key, data);
 }
