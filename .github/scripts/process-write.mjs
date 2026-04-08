@@ -135,8 +135,18 @@ function handleUpdateConfig(newConfig) {
   const filePath = 'data/config.json';
   const file = readJSONFile(filePath) || { _schema_version: 1 };
 
-  const { _savedAt, ...cleanConfig } = newConfig;
+  const { _savedAt, pat, geminiKey, ...cleanConfig } = newConfig;
+  if (cleanConfig.repo) {
+    const { pat: _rPat, ...cleanRepo } = cleanConfig.repo;
+    cleanConfig.repo = cleanRepo;
+  }
   Object.assign(file, cleanConfig);
+  delete file.pat;
+  delete file.geminiKey;
+  if (file.repo) delete file.repo.pat;
+  for (const key of Object.keys(file)) {
+    if (file[key] === null) delete file[key];
+  }
   file._schema_version = 1;
   file.updatedAt = new Date().toISOString();
 

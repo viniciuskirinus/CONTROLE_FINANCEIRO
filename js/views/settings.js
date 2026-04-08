@@ -4,7 +4,7 @@ import { isWizardDone, getRepoConfig, saveRepoConfig } from '../modules/storage.
 import { formatCurrency } from '../modules/format.js';
 import { showAlert } from '../app.js';
 import { getGeminiKey, saveGeminiKey, isGeminiConfigured, testApiKey, getGeminiModel, saveGeminiModel, getAvailableModels } from '../modules/gemini.js';
-import { hashPin, logout } from '../modules/auth.js';
+import { hashPin, logout, encryptSecrets } from '../modules/auth.js';
 
 let state = {
   config: null,
@@ -741,8 +741,17 @@ function buildRepoContent(container) {
     }
     saveRepoConfig({ owner, repo: repoName, pat });
 
-    const repoGitData = { owner, name: repoName, configured: true, pat };
+    const repoGitData = { owner, name: repoName, configured: true };
     const updatedConfig = { ...state.config, repo: repoGitData };
+    delete updatedConfig.pat;
+    delete updatedConfig.geminiKey;
+
+    const pin = sessionStorage.getItem('fvk_pin');
+    if (pin) {
+      const geminiKey = getGeminiKey() || '';
+      updatedConfig.encryptedSecrets = await encryptSecrets(pin, { pat, geminiKey });
+    }
+
     putCacheEntry('config', updatedConfig);
     state.config = updatedConfig;
 
@@ -768,8 +777,8 @@ function buildRepoContent(container) {
 
   const helpText = el('div', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)', lineHeight: '1.6' } });
   helpText.append(
-    el('p', {}, '📦 Tudo (owner, repo e PAT) é salvo no config.json do GitHub.'),
-    el('p', {}, '✅ Ao limpar dados do navegador, tudo será restaurado automaticamente.')
+    el('p', {}, '📦 Owner e repo são salvos no config.json. O PAT é criptografado com seu PIN.'),
+    el('p', {}, '🔐 Defina um PIN em Segurança para habilitar a criptografia dos segredos.')
   );
   container.append(helpText);
 }
@@ -842,7 +851,16 @@ function buildGeminiContent(container) {
       saveGeminiKey(val);
       if (selModel) saveGeminiModel(selModel);
 
-      const updatedConfig = { ...state.config, geminiModel: selModel || undefined, geminiKey: val || undefined };
+      const updatedConfig = { ...state.config, geminiModel: selModel || undefined };
+      delete updatedConfig.pat;
+      delete updatedConfig.geminiKey;
+
+      const pin = sessionStorage.getItem('fvk_pin');
+      if (pin) {
+        const { pat: storedPat } = getRepoConfig();
+        updatedConfig.encryptedSecrets = await encryptSecrets(pin, { pat: storedPat || '', geminiKey: val || '' });
+      }
+
       putCacheEntry('config', updatedConfig);
       state.config = updatedConfig;
       dispatch('update-config', { ...updatedConfig, _schema_version: updatedConfig._schema_version || 1 }).catch(() => {});
@@ -900,7 +918,7 @@ function buildGeminiContent(container) {
     style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-6)', lineHeight: '1.5' }
   });
   infoText.append(
-    document.createTextNode('📦 Chave e modelo são salvos no config.json do GitHub. Obtenha sua chave em: '),
+    document.createTextNode('🔐 A chave é criptografada com seu PIN e salva no config.json. Modelo é salvo em texto. Obtenha sua chave em: '),
     el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', style: { color: 'var(--accent)' } }, 'aistudio.google.com')
   );
   container.append(infoText);
@@ -946,7 +964,7 @@ function buildSecurityContent(container) {
 
   container.append(
     el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)', lineHeight: '1.6' } },
-      'O PIN é armazenado como hash SHA-256 no config.json. A sessão dura enquanto a aba estiver aberta.'
+      'O PIN é armazenado como hash SHA-256 no config.json. O PAT e a chave Gemini são criptografados com seu PIN via AES-256. A sessão dura enquanto a aba estiver aberta.'
     )
   );
 }
@@ -963,10 +981,20 @@ async function savePin() {
   try {
     const pinHash = await hashPin(pin);
     const updatedConfig = { ...state.config, pinHash, _schema_version: state.config._schema_version || 1 };
+    delete updatedConfig.pat;
+    delete updatedConfig.geminiKey;
+
+    const { pat } = getRepoConfig();
+    const geminiKey = getGeminiKey() || '';
+    if (pat || geminiKey) {
+      updatedConfig.encryptedSecrets = await encryptSecrets(pin, { pat: pat || '', geminiKey });
+    }
+
     const result = await dispatch('update-config', updatedConfig);
     if (result.success) {
-      state.config.pinHash = pinHash;
+      state.config = { ...state.config, pinHash, encryptedSecrets: updatedConfig.encryptedSecrets };
       putCacheEntry('config', updatedConfig);
+      sessionStorage.setItem('fvk_pin', pin);
       showAlert('PIN definido com sucesso!', 'success');
     } else {
       showAlert(`Erro ao salvar PIN: ${result.error}`, 'error');
@@ -981,17 +1009,18 @@ async function savePin() {
 }
 
 async function removePin() {
-  if (!confirm('Remover o PIN? Qualquer pessoa poderá acessar o sistema.')) return;
+  if (!confirm('Remover o PIN? Qualquer pessoa poderá acessar o sistema. Os segredos (PAT/Gemini) ficarão apenas no localStorage.')) return;
 
   state.saving = true;
   render();
 
   try {
-    const { pinHash: _, ...rest } = state.config;
-    const updatedConfig = { ...rest, _schema_version: state.config._schema_version || 1 };
+    const updatedConfig = { ...state.config, pinHash: null, encryptedSecrets: null, _schema_version: state.config._schema_version || 1 };
     const result = await dispatch('update-config', updatedConfig);
     if (result.success) {
       delete state.config.pinHash;
+      delete state.config.encryptedSecrets;
+      sessionStorage.removeItem('fvk_pin');
       putCacheEntry('config', updatedConfig);
       showAlert('PIN removido.', 'success');
     } else {

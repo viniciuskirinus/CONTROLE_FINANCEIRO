@@ -8,7 +8,7 @@ import { initSalaryHistory } from './views/salary-history.js';
 import { checkFirstRun, startWizard } from './views/wizard.js';
 import { getRepoConfig, saveRepoConfig } from './modules/storage.js';
 import { getConfig } from './modules/data-service.js';
-import { saveGeminiModel, saveGeminiKey, getGeminiKey } from './modules/gemini.js';
+import { saveGeminiModel } from './modules/gemini.js';
 import { isAuthenticated } from './modules/auth.js';
 import { showLoginScreen } from './views/login.js';
 
@@ -95,10 +95,8 @@ function updateThemeUI() {
 async function restoreConfigFromGit() {
   const existing = getRepoConfig();
   const hasRepo = existing.owner && existing.repo;
-  const hasPat = !!existing.pat;
-  const hasGeminiKey = !!getGeminiKey();
 
-  if (hasRepo && hasPat && hasGeminiKey) return null;
+  if (hasRepo) return null;
 
   try {
     const config = await getConfig();
@@ -108,11 +106,10 @@ async function restoreConfigFromGit() {
       saveRepoConfig({
         owner: config.repo.owner,
         repo: config.repo.name,
-        pat: existing.pat || config.repo.pat || ''
+        pat: existing.pat || ''
       });
     }
     if (config.geminiModel) saveGeminiModel(config.geminiModel);
-    if (config.geminiKey && !hasGeminiKey) saveGeminiKey(config.geminiKey);
     return config;
   } catch { return null; }
 }
@@ -123,12 +120,14 @@ async function checkAuth() {
   if (isAuthenticated()) return true;
 
   let pinHash = null;
+  let encryptedSecrets = null;
 
   try {
     const resp = await fetch('./data/config.json', { cache: 'no-store' });
     if (resp.ok) {
       const fresh = await resp.json();
       pinHash = fresh?.pinHash;
+      encryptedSecrets = fresh?.encryptedSecrets;
     }
   } catch { /* offline or not available */ }
 
@@ -137,7 +136,7 @@ async function checkAuth() {
   return new Promise((resolve) => {
     const appLayout = document.getElementById('app-layout');
     if (appLayout) appLayout.style.display = 'none';
-    showLoginScreen(pinHash, () => {
+    showLoginScreen(pinHash, encryptedSecrets, () => {
       if (appLayout) appLayout.style.display = '';
       resolve(true);
     });

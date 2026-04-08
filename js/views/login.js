@@ -1,6 +1,8 @@
-import { verifyPin, setSession } from '../modules/auth.js';
+import { verifyPin, setSession, decryptSecrets } from '../modules/auth.js';
+import { saveRepoConfig, getRepoConfig } from '../modules/storage.js';
+import { saveGeminiKey } from '../modules/gemini.js';
 
-export function showLoginScreen(pinHash, onSuccess) {
+export function showLoginScreen(pinHash, encryptedSecrets, onSuccess) {
   const screen = document.getElementById('login-screen');
   if (!screen) return;
 
@@ -35,6 +37,21 @@ export function showLoginScreen(pinHash, onSuccess) {
     const ok = await verifyPin(val, pinHash);
     if (ok) {
       setSession();
+      sessionStorage.setItem('fvk_pin', val);
+
+      if (encryptedSecrets) {
+        const secrets = await decryptSecrets(val, encryptedSecrets);
+        if (secrets) {
+          if (secrets.pat) {
+            const existing = getRepoConfig();
+            saveRepoConfig({ ...existing, pat: secrets.pat });
+          }
+          if (secrets.geminiKey) {
+            saveGeminiKey(secrets.geminiKey);
+          }
+        }
+      }
+
       screen.hidden = true;
       screen.innerHTML = '';
       onSuccess();
