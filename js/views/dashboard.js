@@ -77,16 +77,46 @@ function buildLayout(section, people) {
   `;
 }
 
-function renderSummary(transactions) {
+function renderSummary(transactions, config) {
   const container = document.getElementById('dash-summary');
   const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
   const balanceColor = balance >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
+  const person = currentPerson === 'all'
+    ? config?.people?.[0]
+    : config?.people?.find(p => p.name === currentPerson);
+  const salary = person?.salary || 0;
+  const goal = person?.monthlyGoal || 0;
+  const available = salary - expense;
+  const availableColor = available >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+
+  let salaryCards = '';
+  if (salary > 0) {
+    const pctUsed = salary > 0 ? Math.min((expense / salary) * 100, 100) : 0;
+    const barColor = pctUsed > 90 ? 'var(--color-expense)' : pctUsed > 70 ? 'var(--color-warning)' : 'var(--color-income)';
+    salaryCards = `
+      <div class="card" style="border-left:4px solid var(--color-secondary)">
+        <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">💼 Salário${currentPerson !== 'all' ? '' : ` (${person?.name || ''})`}</div>
+        <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--color-secondary)">${formatCurrency(salary)}</div>
+        <div style="margin-top:var(--space-sm);background:var(--color-surface-hover);border-radius:4px;height:6px;overflow:hidden">
+          <div style="width:${pctUsed}%;height:100%;background:${barColor};border-radius:4px;transition:width 0.3s"></div>
+        </div>
+        <div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:2px">${pctUsed.toFixed(0)}% usado</div>
+      </div>
+      <div class="card" style="border-left:4px solid ${availableColor}">
+        <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">💰 Disponível</div>
+        <div style="font-size:var(--font-size-2xl);font-weight:700;color:${availableColor}">${formatCurrency(available)}</div>
+        ${goal > 0 ? `<div style="font-size:var(--font-size-xs);color:var(--color-text-secondary);margin-top:var(--space-xs)">🎯 Meta: ${formatCurrency(goal)}</div>` : ''}
+      </div>
+    `;
+  }
+
   container.innerHTML = `
+    ${salaryCards}
     <div class="card" style="border-left:4px solid var(--color-income)">
-      <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">💰 Receitas</div>
+      <div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-xs)">📈 Receitas</div>
       <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--color-income)">${formatCurrency(income)}</div>
     </div>
     <div class="card" style="border-left:4px solid var(--color-expense)">
@@ -309,7 +339,7 @@ async function loadDashboard() {
   document.getElementById('dash-month-label').textContent = monthLabel(currentYearMonth);
 
   destroyCharts();
-  renderSummary(transactions);
+  renderSummary(transactions, config);
   renderDoughnutChart(transactions, categories);
   renderBarChart(transactions, categories, config);
   renderRecentTransactions(transactions, categories);

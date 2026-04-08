@@ -134,3 +134,23 @@
     display: block;
   }
 }
+
+/* Card selection (mobile) */
+.txn-card-check {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.txn-card-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-secondary);
+  cursor: pointer;
+}
+
+.txn-card-selected {
+  background: var(--color-surface-hover);
+  border-left: 3px solid var(--color-secondary);
+}

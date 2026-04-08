@@ -284,7 +284,10 @@ function renderCardList(section) {
   }
 
   list.innerHTML = txns.map(t => `
-    <div class="txn-card" data-id="${t.id}">
+    <div class="txn-card ${viewState.selectedIds.has(t.id) ? 'txn-card-selected' : ''}" data-id="${t.id}">
+      <label class="txn-card-check">
+        <input type="checkbox" class="stmt-card-check" data-id="${t.id}" ${viewState.selectedIds.has(t.id) ? 'checked' : ''}>
+      </label>
       <div class="txn-card-icon">${getCategoryIcon(t.category)}</div>
       <div class="txn-card-info">
         <div class="txn-card-desc">${escapeHtml(t.description)} ${getSyncBadge(t.id)}</div>
@@ -299,6 +302,17 @@ function renderCardList(section) {
       </div>
     </div>
   `).join('');
+
+  list.querySelectorAll('.stmt-card-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const id = parseId(e.target.dataset.id);
+      if (e.target.checked) viewState.selectedIds.add(id);
+      else viewState.selectedIds.delete(id);
+      const card = e.target.closest('.txn-card');
+      if (card) card.classList.toggle('txn-card-selected', e.target.checked);
+      updateBulkBar(section);
+    });
+  });
 
   list.querySelectorAll('.stmt-edit').forEach(btn => {
     btn.addEventListener('click', () => openEditModal(parseId(btn.dataset.id), section));

@@ -1,9 +1,11 @@
-import { getConfig, getCategories, getPaymentMethods, getTransactions, putCacheEntry } from '../modules/data-service.js';
+import { getConfig, getCategories, getPaymentMethods, getTransactions, putCacheEntry, findDuplicates } from '../modules/data-service.js';
 import { dispatch } from '../modules/github-api.js';
 import { formatCurrency } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
 import { isGeminiConfigured, analyzeReceipt, analyzeStatement, compressImage } from '../modules/gemini.js';
 import { showAlert, navigate } from '../app.js';
+
+const SALARY_KEYWORDS = ['salário', 'salario', 'salary', 'holerite', 'pagamento mensal', 'remuneração', 'remuneracao', 'folha de pagamento', 'vencimento', 'proventos'];
 
 let state = {
   tab: 'receipt',
@@ -393,6 +395,17 @@ async function saveReceiptTransaction(form, people) {
   try {
     const existing = await getTransactions(yearMonth);
     const fileData = existing || { _schema_version: 1, month: yearMonth, lastId: 0, transactions: [] };
+
+    const dupes = findDuplicates(fileData.transactions, txnData);
+    if (dupes.length > 0) {
+      const proceed = confirm(`⚠️ Possível duplicata!\n\nJá existe transação em ${dateVal} com "${description}" no valor de R$ ${amount.toFixed(2)}.\n\nDeseja salvar mesmo assim?`);
+      if (!proceed) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '💾 Salvar Transação';
+        return;
+      }
+    }
+
     fileData.transactions = [...fileData.transactions, txnData];
     putCacheEntry(`txn-${yearMonth}`, { ...fileData });
 
@@ -409,6 +422,14 @@ async function saveReceiptTransaction(form, people) {
 
     if (!result?.success) {
       showAlert('Erro ao sincronizar: ' + (result?.error || 'desconhecido'), 'warning');
+    }
+
+    if (activeType === 'income' && amount > 0) {
+      const descLower = description.toLowerCase();
+      const isSalary = SALARY_KEYWORDS.some(kw => descLower.includes(kw));
+      if (isSalary) {
+        checkAndOfferSalaryUpdate(person, amount);
+      }
     }
 
     state.file = null;
@@ -609,6 +630,7 @@ async function saveStatementItems() {
 
   let successCount = 0;
   let errorCount = 0;
+  let dupeCount = 0;
 
   for (const item of items) {
     if (!item.date || !item.description || !item.amount) {
@@ -636,6 +658,13 @@ async function saveStatementItems() {
     try {
       const existing = await getTransactions(yearMonth);
       const fileData = existing || { _schema_version: 1, month: yearMonth, lastId: 0, transactions: [] };
+
+      const dupes = findDuplicates(fileData.transactions, txnData);
+      if (dupes.length > 0) {
+        dupeCount++;
+        item._duplicate = true;
+      }
+
       fileData.transactions = [...fileData.transactions, txnData];
       putCacheEntry(`txn-${yearMonth}`, { ...fileData });
 
@@ -657,6 +686,9 @@ async function saveStatementItems() {
   if (successCount > 0) {
     showAlert(`${successCount} transações salvas via IA!`, 'success');
   }
+  if (dupeCount > 0) {
+    showAlert(`⚠️ ${dupeCount} possíveis duplicatas detectadas (foram salvas mesmo assim).`, 'warning');
+  }
   if (errorCount > 0) {
     showAlert(`${errorCount} itens com erro.`, 'warning');
   }
@@ -665,6 +697,37 @@ async function saveStatementItems() {
   state.preview = null;
   state.statementItems = null;
   render();
+}
+
+async function checkAndOfferSalaryUpdate(personName, amount) {
+  const config = state.config;
+  if (!config?.people?.length) return;
+
+  const person = config.people.find(p => p.name === personName);
+  if (!person) return;
+
+  const currentSalary = person.salary || 0;
+  if (Math.abs(currentSalary - amount) < 0.01) return;
+
+  const msg = currentSalary > 0
+    ? `Salário detectado: ${formatCurrency(amount)}.\n\nAtualizar o salário de "${person.name}" (atual: ${formatCurrency(currentSalary)})?`
+    : `Salário detectado: ${formatCurrency(amount)}.\n\nDefinir como salário de "${person.name}"?`;
+
+  if (!confirm(msg)) return;
+
+  const people = config.people.map(p =>
+    p.name === personName ? { ...p, salary: amount } : p
+  );
+
+  const updatedConfig = { ...config, people, _schema_version: config._schema_version || 1 };
+  state.config = updatedConfig;
+  putCacheEntry('config', updatedConfig);
+
+  dispatch('update-config', updatedConfig).then(result => {
+    if (result?.success) {
+      showAlert(`Salário de "${person.name}" atualizado para ${formatCurrency(amount)}!`, 'success');
+    }
+  }).catch(() => {});
 }
 
 function buildFormGroup(label, input) {

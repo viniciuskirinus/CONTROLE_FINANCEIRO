@@ -1,4 +1,4 @@
-import { getConfig, getCategories, getPaymentMethods, getTransactions, invalidateCache, putCacheEntry } from '../modules/data-service.js';
+import { getConfig, getCategories, getPaymentMethods, getTransactions, invalidateCache, putCacheEntry, findDuplicates } from '../modules/data-service.js';
 import { dispatch } from '../modules/github-api.js';
 import { formatCurrency, getCurrentYearMonth } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
@@ -317,6 +317,17 @@ async function handleSubmit(section, config, categories, people, currentType) {
     const cacheKey = `txn-${yearMonth}`;
     const existing = await getTransactions(yearMonth);
     const fileData = existing || { _schema_version: 1, month: yearMonth, lastId: 0, transactions: [] };
+
+    const dupes = findDuplicates(fileData.transactions, txnData);
+    if (dupes.length > 0) {
+      const proceed = confirm(`⚠️ Possível duplicata!\n\nJá existe transação em ${dateVal} com "${description}" no valor de R$ ${amount.toFixed(2)}.\n\nDeseja salvar mesmo assim?`);
+      if (!proceed) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Registrar Transação';
+        return;
+      }
+    }
+
     fileData.transactions = [...fileData.transactions, txnData];
     putCacheEntry(cacheKey, { ...fileData });
 

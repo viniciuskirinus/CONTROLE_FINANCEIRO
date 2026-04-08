@@ -83,3 +83,13 @@ export function putCacheEntry(key, data) {
   cache.set(key, data);
   setLocalData(key, data);
 }
+
+export function findDuplicates(existingTransactions, newTxn) {
+  if (!existingTransactions?.length) return [];
+  const normalize = s => (s || '').toLowerCase().trim();
+  return existingTransactions.filter(t =>
+    t.date === newTxn.date &&
+    Math.abs(t.amount - newTxn.amount) < 0.01 &&
+    normalize(t.description) === normalize(newTxn.description)
+  );
+}
