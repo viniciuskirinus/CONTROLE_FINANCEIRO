@@ -8,7 +8,8 @@ let state = {
   config: null,
   showForm: false,
   showDeposit: null,
-  editGoal: null
+  editGoal: null,
+  expandedGoal: null
 };
 
 function el(tag, attrs = {}, ...children) {
@@ -86,7 +87,18 @@ function renderGoalCard(goal) {
     el('button', { className: 'btn btn-ghost', style: { flex: '1', fontSize: 'var(--text-sm)' }, onClick: () => { state.showDeposit = -goal.id; render(); } }, '- Retirada')
   );
 
-  card.append(header, amountEl, progress, info, actions);
+  const isExpanded = state.expandedGoal === goal.id;
+  const toggleHistory = el('button', {
+    className: 'btn btn-ghost',
+    style: { width: '100%', fontSize: 'var(--text-xs)', marginTop: 'var(--sp-2)' },
+    onClick: () => { state.expandedGoal = isExpanded ? null : goal.id; render(); }
+  }, isExpanded ? 'Ocultar lancamentos' : `Ver lancamentos (${deposits.length})`);
+
+  card.append(header, amountEl, progress, info, actions, toggleHistory);
+
+  if (isExpanded) {
+    card.append(renderDepositHistory(deposits, goal.id));
+  }
 
   if (state.showDeposit === goal.id || state.showDeposit === -goal.id) {
     const isWithdraw = state.showDeposit < 0;
@@ -94,6 +106,52 @@ function renderGoalCard(goal) {
   }
 
   return card;
+}
+
+function renderDepositHistory(deposits, goalId) {
+  const wrapper = el('div', { style: { marginTop: 'var(--sp-3)', borderTop: '1px solid var(--border)', paddingTop: 'var(--sp-3)' } });
+
+  if (!deposits.length) {
+    wrapper.append(el('p', { style: { color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', textAlign: 'center' } }, 'Nenhum lancamento ainda.'));
+    return wrapper;
+  }
+
+  const sorted = [...deposits].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+  sorted.forEach(d => {
+    const isPositive = d.amount >= 0;
+    const row = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-2) 0', borderBottom: '1px solid var(--border-light)', gap: 'var(--sp-2)' } });
+
+    const left = el('div', { style: { minWidth: 0, flex: 1 } });
+    left.append(
+      el('div', { style: { fontSize: 'var(--text-sm)', fontWeight: '500' } }, d.note || (isPositive ? 'Deposito' : 'Retirada')),
+      el('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' } }, formatDate(d.date))
+    );
+
+    const amountSpan = el('span', {
+      style: { fontWeight: '600', fontSize: 'var(--text-sm)', whiteSpace: 'nowrap', color: isPositive ? 'var(--color-income)' : 'var(--color-expense)' }
+    }, `${isPositive ? '+' : ''}${formatCurrency(d.amount)}`);
+
+    const deleteBtn = el('button', {
+      className: 'btn-icon',
+      title: 'Remover',
+      style: { fontSize: '12px', minWidth: '24px', minHeight: '24px' },
+      onClick: () => removeDeposit(d.id, goalId)
+    }, '\u2715');
+
+    row.append(left, amountSpan, deleteBtn);
+    wrapper.append(row);
+  });
+
+  return wrapper;
+}
+
+function removeDeposit(depositId, goalId) {
+  if (!confirm('Remover este lancamento?')) return;
+  state.savings.deposits = state.savings.deposits.filter(d => d.id !== depositId);
+  render();
+  showAlert('Lancamento removido!', 'success');
+  save(state.savings);
 }
 
 function renderDepositForm(goalId, isWithdraw, currentTotal) {
