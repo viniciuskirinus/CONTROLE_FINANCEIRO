@@ -1,0 +1,15 @@
+{
+  "_schema_version": 1,
+  "people": [],
+  "settings": {
+    "currency": "BRL",
+    "locale": "pt-BR",
+    "timezone": "America/Sao_Paulo"
+  },
+  "repo": {
+    "owner": "",
+    "name": "",
+    "configured": false
+  },
+  "updatedAt": ""
+}

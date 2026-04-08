@@ -1,0 +1,79 @@
+{
+  "_schema_version": 1,
+  "expense": [
+    {
+      "name": "Alimentação",
+      "icon": "🍽️",
+      "color": "#e65100",
+      "subcategories": ["Restaurante", "Supermercado", "Delivery", "Lanche"]
+    },
+    {
+      "name": "Transporte",
+      "icon": "🚗",
+      "color": "#1565c0",
+      "subcategories": ["Combustível", "Uber/99", "Transporte Público", "Estacionamento"]
+    },
+    {
+      "name": "Moradia",
+      "icon": "🏠",
+      "color": "#6a1b9a",
+      "subcategories": ["Aluguel", "Condomínio", "Conta de Luz", "Conta de Água", "Internet", "Manutenção"]
+    },
+    {
+      "name": "Saúde",
+      "icon": "🏥",
+      "color": "#00838f",
+      "subcategories": ["Farmácia", "Consulta", "Plano de Saúde", "Academia"]
+    },
+    {
+      "name": "Lazer",
+      "icon": "🎮",
+      "color": "#ad1457",
+      "subcategories": ["Cinema", "Streaming", "Jogos", "Viagem", "Eventos"]
+    },
+    {
+      "name": "Educação",
+      "icon": "📚",
+      "color": "#1b5e20",
+      "subcategories": ["Curso", "Livro", "Material"]
+    },
+    {
+      "name": "Vestuário",
+      "icon": "👔",
+      "color": "#4e342e",
+      "subcategories": ["Roupa", "Calçado", "Acessório"]
+    },
+    {
+      "name": "Outros",
+      "icon": "📦",
+      "color": "#546e7a",
+      "subcategories": ["Presente", "Pet", "Assinatura", "Diversos"]
+    }
+  ],
+  "income": [
+    {
+      "name": "Salário",
+      "icon": "💼",
+      "color": "#2e7d32",
+      "subcategories": []
+    },
+    {
+      "name": "Freelance",
+      "icon": "💻",
+      "color": "#1565c0",
+      "subcategories": []
+    },
+    {
+      "name": "Investimento",
+      "icon": "📈",
+      "color": "#00695c",
+      "subcategories": ["Rendimento", "Dividendo"]
+    },
+    {
+      "name": "Outros",
+      "icon": "💰",
+      "color": "#546e7a",
+      "subcategories": ["Reembolso", "Presente", "Diversos"]
+    }
+  ]
+}
