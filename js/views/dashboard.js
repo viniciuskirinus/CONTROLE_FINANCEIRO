@@ -96,10 +96,18 @@ function renderSummary(transactions, config) {
   const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
 
-  const person = currentPerson === 'all'
-    ? config?.people?.[0]
-    : config?.people?.find(p => p.name === currentPerson);
-  const salary = person?.salary || 0;
+  const people = config?.people || [];
+  let salary, monthlyGoal;
+
+  if (currentPerson === 'all') {
+    salary = people.reduce((s, p) => s + (p.salary || 0), 0);
+    monthlyGoal = people.reduce((s, p) => s + (p.monthlyGoal || 0), 0);
+  } else {
+    const person = people.find(p => p.name === currentPerson);
+    salary = person?.salary || 0;
+    monthlyGoal = person?.monthlyGoal || 0;
+  }
+
   const available = salary > 0 ? salary - expense : balance;
 
   let html = '';
@@ -117,7 +125,7 @@ function renderSummary(transactions, config) {
       <div class="summary-card summary-card--${available >= 0 ? 'positive' : 'negative'}">
         <div class="summary-card__label">Disponivel</div>
         <div class="summary-card__value">${formatCurrency(available)}</div>
-        ${person?.monthlyGoal > 0 ? `<div class="summary-card__hint">Meta: ${formatCurrency(person.monthlyGoal)}</div>` : ''}
+        ${monthlyGoal > 0 ? `<div class="summary-card__hint">Meta: ${formatCurrency(monthlyGoal)}</div>` : ''}
       </div>
     `;
   }
@@ -140,49 +148,62 @@ function renderBudgetProgress(transactions, categories, config) {
   const container = document.getElementById('dash-budget-progress');
   if (!container) return;
 
-  const personName = currentPerson === 'all' ? config?.people?.[0]?.name : currentPerson;
-  const budgets = config?.budgets?.[personName];
-
-  if (!budgets || Object.keys(budgets).length === 0) { container.innerHTML = ''; return; }
-
-  const expenses = transactions.filter(t => t.type === 'expense');
-  const grouped = {};
-  expenses.forEach(t => { grouped[t.category] = (grouped[t.category] || 0) + t.amount; });
-
+  const people = config?.people || [];
+  const allBudgets = config?.budgets || {};
   const expenseCats = categories?.expense || [];
   const catMap = new Map();
   expenseCats.forEach(c => catMap.set(c.name, c));
 
-  let items = '';
-  for (const [catName, budgetVal] of Object.entries(budgets)) {
-    if (budgetVal <= 0) continue;
-    const spent = grouped[catName] || 0;
-    const pct = Math.min((spent / budgetVal) * 100, 100);
-    const barClass = pct > 100 ? 'over' : pct > 75 ? 'warning' : 'under';
-    const cat = catMap.get(catName);
-    const icon = cat?.icon || '';
-    const overText = spent > budgetVal ? `<span class="budget-over-alert">Excedeu ${formatCurrency(spent - budgetVal)}</span>` : '';
+  const personNames = currentPerson === 'all'
+    ? people.map(p => p.name).filter(n => allBudgets[n] && Object.keys(allBudgets[n]).length > 0)
+    : (allBudgets[currentPerson] && Object.keys(allBudgets[currentPerson]).length > 0 ? [currentPerson] : []);
 
-    items += `
-      <div class="budget-item">
-        <div class="budget-item-header">
-          <span class="budget-item-label">${icon} ${catName}</span>
-          <span class="budget-item-values">${formatCurrency(spent)} / ${formatCurrency(budgetVal)}</span>
+  if (!personNames.length) { container.innerHTML = ''; return; }
+
+  let sections = '';
+
+  for (const personName of personNames) {
+    const budgets = allBudgets[personName];
+    const personTxns = currentPerson === 'all'
+      ? transactions.filter(t => t.type === 'expense' && t.person === personName)
+      : transactions.filter(t => t.type === 'expense');
+
+    const grouped = {};
+    personTxns.forEach(t => { grouped[t.category] = (grouped[t.category] || 0) + t.amount; });
+
+    let items = '';
+    for (const [catName, budgetVal] of Object.entries(budgets)) {
+      if (budgetVal <= 0) continue;
+      const spent = grouped[catName] || 0;
+      const pct = Math.min((spent / budgetVal) * 100, 100);
+      const barClass = pct > 100 ? 'over' : pct > 75 ? 'warning' : 'under';
+      const cat = catMap.get(catName);
+      const icon = cat?.icon || '';
+      const overText = spent > budgetVal ? `<span class="budget-over-alert">Excedeu ${formatCurrency(spent - budgetVal)}</span>` : '';
+
+      items += `
+        <div class="budget-item">
+          <div class="budget-item-header">
+            <span class="budget-item-label">${icon} ${catName}</span>
+            <span class="budget-item-values">${formatCurrency(spent)} / ${formatCurrency(budgetVal)}</span>
+          </div>
+          <div class="budget-bar"><div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div></div>
+          ${overText}
         </div>
-        <div class="budget-bar"><div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div></div>
-        ${overText}
-      </div>
-    `;
+      `;
+    }
+
+    if (items) {
+      sections += `
+        <div class="card" style="margin-bottom:var(--sp-4)">
+          <h3 style="margin:0 0 var(--sp-4)">Orcamento do Mes — ${personName}</h3>
+          ${items}
+        </div>
+      `;
+    }
   }
 
-  if (!items) { container.innerHTML = ''; return; }
-
-  container.innerHTML = `
-    <div class="card" style="margin-bottom:var(--sp-4)">
-      <h3 style="margin:0 0 var(--sp-4)">Orcamento do Mes${personName ? ` — ${personName}` : ''}</h3>
-      ${items}
-    </div>
-  `;
+  container.innerHTML = sections;
 }
 
 function renderDoughnutChart(transactions, categories) {
@@ -255,8 +276,17 @@ function renderBarChart(transactions, categories, config) {
   const grouped = {};
   expenses.forEach(t => { grouped[t.category] = (grouped[t.category] || 0) + t.amount; });
 
-  const personName = currentPerson === 'all' ? config?.people?.[0]?.name : currentPerson;
-  const budgets = config?.budgets?.[personName] || {};
+  const allBudgets = config?.budgets || {};
+  const budgets = {};
+  if (currentPerson === 'all') {
+    for (const personBudgets of Object.values(allBudgets)) {
+      for (const [cat, val] of Object.entries(personBudgets || {})) {
+        budgets[cat] = (budgets[cat] || 0) + val;
+      }
+    }
+  } else {
+    Object.assign(budgets, allBudgets[currentPerson] || {});
+  }
   const hasBudgets = Object.keys(budgets).length > 0;
 
   const activeCats = expenseCats.filter(c => grouped[c.name] || budgets[c.name]);
