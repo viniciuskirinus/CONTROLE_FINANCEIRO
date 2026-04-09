@@ -517,7 +517,8 @@ function buildCategorySelect(item) {
 function buildStatementTable() {
   const items = state.statementItems || [];
 
-  const card = el('div', { className: 'card', style: { marginTop: 'var(--sp-4)', overflowX: 'auto' } });
+  const isMobile = window.innerWidth <= 768;
+  const card = el('div', { className: 'card', style: { marginTop: 'var(--sp-4)' } });
 
   const incomeCount = items.filter(i => i.type === 'income').length;
   const expenseCount = items.filter(i => i.type !== 'income').length;
@@ -539,88 +540,92 @@ function buildStatementTable() {
     return card;
   }
 
-  const table = el('table', { className: 'data-table' });
-
   const allSelected = items.every(i => i._selected);
-  const thead = el('thead');
-  const headerRow = el('tr');
   const selectAllCb = el('input', {
     type: 'checkbox',
-    onChange: (e) => {
-      items.forEach(i => i._selected = e.target.checked);
-      render();
-    }
+    onChange: (e) => { items.forEach(i => i._selected = e.target.checked); render(); }
   });
   selectAllCb.checked = allSelected;
 
-  headerRow.append(
-    el('th', { style: { width: '40px' } }, selectAllCb),
-    el('th', {}, 'Data'),
-    el('th', {}, 'Descrição'),
-    el('th', {}, 'Tipo'),
-    el('th', {}, 'Categoria'),
-    el('th', { style: { textAlign: 'right' } }, 'Valor')
-  );
-  thead.append(headerRow);
+  if (isMobile) {
+    const selectAllRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' } });
+    selectAllRow.append(selectAllCb, el('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } }, 'Selecionar todos'));
 
-  const tbody = el('tbody');
-  items.forEach((item) => {
-    if (!item.type) item.type = 'expense';
-    const row = el('tr');
+    const listContainer = el('div');
+    items.forEach((item) => {
+      if (!item.type) item.type = 'expense';
+      const itemCard = el('div', {
+        style: {
+          background: item._selected ? 'var(--accent-muted)' : 'var(--bg-input)',
+          borderRadius: 'var(--radius)', padding: 'var(--sp-3)',
+          marginBottom: 'var(--sp-2)', border: '1px solid var(--border-light)'
+        }
+      });
+      const topRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' } });
+      const cb = el('input', { type: 'checkbox', onChange: (e) => { item._selected = e.target.checked; render(); } });
+      cb.checked = item._selected;
+      topRow.append(cb, el('input', {
+        className: 'form-input', type: 'text', value: item.description || '',
+        style: { fontSize: 'var(--text-sm)', padding: '4px 8px', flex: '1' },
+        onChange: (e) => { item.description = e.target.value; }
+      }));
 
-    const cb = el('input', {
-      type: 'checkbox',
-      onChange: (e) => { item._selected = e.target.checked; render(); }
+      const midRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' } });
+      midRow.append(
+        el('input', { className: 'form-input', type: 'date', value: item.date || '', style: { fontSize: 'var(--text-sm)', padding: '4px 8px' }, onChange: (e) => { item.date = e.target.value; } }),
+        el('input', { className: 'form-input', type: 'number', step: '0.01', value: String(item.amount || ''), style: { fontSize: 'var(--text-sm)', padding: '4px 8px', textAlign: 'right' }, onChange: (e) => { item.amount = parseFloat(e.target.value) || 0; } })
+      );
+
+      const botRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-2)' } });
+      const typeSelect = el('select', { className: 'form-select', style: { fontSize: 'var(--text-sm)', padding: '4px 8px' }, onChange: (e) => { item.type = e.target.value; item.category = ''; render(); } });
+      const expOpt = el('option', { value: 'expense' }, 'Despesa');
+      const incOpt = el('option', { value: 'income' }, 'Receita');
+      if (item.type === 'income') incOpt.selected = true; else expOpt.selected = true;
+      typeSelect.append(expOpt, incOpt);
+      const catSelect = buildCategorySelect(item);
+      catSelect.style.padding = '4px 8px';
+      botRow.append(typeSelect, catSelect);
+
+      itemCard.append(topRow, midRow, botRow);
+      listContainer.append(itemCard);
     });
-    cb.checked = item._selected;
-
-    const dateInput = el('input', {
-      className: 'form-input', type: 'date', value: item.date || '',
-      style: { fontSize: 'var(--text-sm)', padding: '4px' },
-      onChange: (e) => { item.date = e.target.value; }
-    });
-
-    const descInput = el('input', {
-      className: 'form-input', type: 'text', value: item.description || '',
-      style: { fontSize: 'var(--text-sm)', padding: '4px', minWidth: '150px' },
-      onChange: (e) => { item.description = e.target.value; }
-    });
-
-    const typeSelect = el('select', {
-      className: 'form-select',
-      style: { fontSize: 'var(--text-sm)', padding: '4px', minWidth: '90px' },
-      onChange: (e) => {
-        item.type = e.target.value;
-        item.category = '';
-        render();
-      }
-    });
-    const expOpt = el('option', { value: 'expense' }, 'Despesa');
-    const incOpt = el('option', { value: 'income' }, 'Receita');
-    if (item.type === 'income') incOpt.selected = true;
-    else expOpt.selected = true;
-    typeSelect.append(expOpt, incOpt);
-
-    const catSelect = buildCategorySelect(item);
-
-    const amountInput = el('input', {
-      className: 'form-input', type: 'number', step: '0.01', value: String(item.amount || ''),
-      style: { fontSize: 'var(--text-sm)', padding: '4px', width: '100px', textAlign: 'right' },
-      onChange: (e) => { item.amount = parseFloat(e.target.value) || 0; }
-    });
-
-    row.append(
-      el('td', {}, cb),
-      el('td', {}, dateInput),
-      el('td', {}, descInput),
-      el('td', {}, typeSelect),
-      el('td', {}, catSelect),
-      el('td', { style: { textAlign: 'right' } }, amountInput)
+    card.append(badge, selectAllRow, listContainer);
+  } else {
+    const tableWrap = el('div', { style: { overflowX: 'auto' } });
+    const table = el('table', { className: 'data-table' });
+    const thead = el('thead');
+    const headerRow = el('tr');
+    headerRow.append(
+      el('th', { style: { width: '40px' } }, selectAllCb),
+      el('th', {}, 'Data'), el('th', {}, 'Descrição'), el('th', {}, 'Tipo'),
+      el('th', {}, 'Categoria'), el('th', { style: { textAlign: 'right' } }, 'Valor')
     );
-    tbody.append(row);
-  });
-
-  table.append(thead, tbody);
+    thead.append(headerRow);
+    const tbody = el('tbody');
+    items.forEach((item) => {
+      if (!item.type) item.type = 'expense';
+      const row = el('tr');
+      const cb = el('input', { type: 'checkbox', onChange: (e) => { item._selected = e.target.checked; render(); } });
+      cb.checked = item._selected;
+      row.append(
+        el('td', {}, cb),
+        el('td', {}, el('input', { className: 'form-input', type: 'date', value: item.date || '', style: { fontSize: 'var(--text-sm)', padding: '4px' }, onChange: (e) => { item.date = e.target.value; } })),
+        el('td', {}, el('input', { className: 'form-input', type: 'text', value: item.description || '', style: { fontSize: 'var(--text-sm)', padding: '4px', minWidth: '150px' }, onChange: (e) => { item.description = e.target.value; } })),
+        el('td', {}, (() => {
+          const s = el('select', { className: 'form-select', style: { fontSize: 'var(--text-sm)', padding: '4px', minWidth: '90px' }, onChange: (e) => { item.type = e.target.value; item.category = ''; render(); } });
+          const eo = el('option', { value: 'expense' }, 'Despesa'); const io = el('option', { value: 'income' }, 'Receita');
+          if (item.type === 'income') io.selected = true; else eo.selected = true;
+          s.append(eo, io); return s;
+        })()),
+        el('td', {}, buildCategorySelect(item)),
+        el('td', { style: { textAlign: 'right' } }, el('input', { className: 'form-input', type: 'number', step: '0.01', value: String(item.amount || ''), style: { fontSize: 'var(--text-sm)', padding: '4px', width: '100px', textAlign: 'right' }, onChange: (e) => { item.amount = parseFloat(e.target.value) || 0; } }))
+      );
+      tbody.append(row);
+    });
+    table.append(thead, tbody);
+    tableWrap.append(table);
+    card.append(badge, tableWrap);
+  }
 
   const selectedCount = items.filter(i => i._selected).length;
   const selectedTotal = items.filter(i => i._selected).reduce((s, i) => s + (i.amount || 0), 0);
@@ -631,11 +636,10 @@ function buildStatementTable() {
 
   footer.append(
     el('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' } },
-      `${selectedCount} de ${items.length} selecionados · Total: ${formatCurrency(selectedTotal)}`
-    )
+      `${selectedCount}/${items.length} · ${formatCurrency(selectedTotal)}`)
   );
 
-  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)' } });
+  const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap', alignItems: 'center' } });
   const people = state.config?.people || [];
 
   if (people.length > 1) {
@@ -647,13 +651,12 @@ function buildStatementTable() {
   const saveBtn = el('button', {
     className: 'btn btn-primary',
     onClick: saveStatementItems
-  }, `💾 Salvar ${selectedCount} Selecionados`);
+  }, `💾 Salvar ${selectedCount}`);
   if (selectedCount === 0) saveBtn.disabled = true;
-  actions.append(saveBtn
-  );
+  actions.append(saveBtn);
 
   footer.append(actions);
-  card.append(badge, table, footer);
+  card.append(footer);
   return card;
 }
 

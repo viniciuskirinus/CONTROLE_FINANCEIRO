@@ -134,6 +134,19 @@
 .toggle-option[data-value="expense"].active { background: var(--color-expense); }
 .toggle-option[data-value="income"].active { background: var(--color-income); }
 
+/* ── Alert Container ── */
+#alert-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+  width: calc(100% - 32px);
+}
+
 /* ── Alerts ── */
 .alert {
   padding: var(--sp-3) var(--sp-4);
@@ -147,8 +160,7 @@
   transform: translateX(40px);
   transition: opacity 250ms ease, transform 250ms ease;
   box-shadow: var(--shadow-card);
-  min-width: 280px;
-  max-width: 420px;
+  word-break: break-word;
 }
 
 .alert-show { opacity: 1; transform: translateX(0); }
@@ -166,6 +178,16 @@
 .alert-error { background: var(--color-expense-bg); color: var(--color-expense); }
 .alert-info { background: var(--color-info-bg); color: var(--color-info); }
 .alert-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+
+@media (max-width: 768px) {
+  #alert-container {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+    max-width: none;
+    width: auto;
+  }
+}
 
 /* ── Spinner ── */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -425,7 +447,29 @@
 .budget-settings-input { display: flex; align-items: center; gap: var(--sp-1); flex: 1; max-width: 180px; }
 .budget-settings-input .currency-label { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 600; flex-shrink: 0; }
 
+@media (max-width: 768px) {
+  .budget-settings-row {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .budget-settings-category { min-width: auto; flex: 1; }
+  .budget-settings-input { max-width: none; min-width: 120px; }
+}
+
 /* ── Confirm Dialog ── */
 .confirm-modal { max-width: 420px; }
 .confirm-dialog { text-align: center; padding: var(--sp-2) 0; }
 .confirm-dialog p { margin-bottom: var(--sp-5); color: var(--text-primary); line-height: 1.6; white-space: pre-line; }
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95%;
+    max-width: none;
+    padding: var(--sp-4);
+    margin: var(--sp-2);
+  }
+  .modal-overlay { padding: var(--sp-2); }
+  .modal-header { margin-bottom: var(--sp-3); }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .btn { flex: 1; min-width: 0; }
+}

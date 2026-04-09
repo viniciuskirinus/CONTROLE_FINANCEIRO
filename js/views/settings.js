@@ -72,14 +72,14 @@ function renderPersonCard(person) {
   const card = el('div', { className: 'card', style: { marginBottom: 'var(--sp-4)', borderLeft: `4px solid ${person.color || 'var(--accent)'}` } });
   const row = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--sp-4)' } });
 
-  const info = el('div', { style: { flex: '1' } });
+  const info = el('div', { style: { flex: '1', minWidth: '0' } });
   info.append(
     el('div', { style: { fontWeight: '700', fontSize: 'var(--text-lg)', marginBottom: 'var(--sp-2)', textTransform: 'capitalize' } }, person.name),
-    el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 'var(--sp-2)' } },
-      el('div', {}, el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Salário: '), el('strong', {}, formatCurrency(person.salary || 0))),
-      el('div', {}, el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Meta mensal: '), el('strong', {}, formatCurrency(person.monthlyGoal || 0))),
-      el('div', {}, el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Fechamento: '), el('strong', {}, `Dia ${person.creditCard?.closingDay || '-'}`)),
-      el('div', {}, el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' } }, 'Pagamento: '), el('strong', {}, `Dia ${person.creditCard?.paymentDay || '-'}`))
+    el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--sp-2)', fontSize: 'var(--text-sm)' } },
+      el('div', {}, el('span', { style: { color: 'var(--text-secondary)' } }, 'Salário: '), el('strong', {}, formatCurrency(person.salary || 0))),
+      el('div', {}, el('span', { style: { color: 'var(--text-secondary)' } }, 'Meta: '), el('strong', {}, formatCurrency(person.monthlyGoal || 0))),
+      el('div', {}, el('span', { style: { color: 'var(--text-secondary)' } }, 'Fech.: '), el('strong', {}, `Dia ${person.creditCard?.closingDay || '-'}`)),
+      el('div', {}, el('span', { style: { color: 'var(--text-secondary)' } }, 'Pgto.: '), el('strong', {}, `Dia ${person.creditCard?.paymentDay || '-'}`))
     )
   );
 
@@ -205,21 +205,28 @@ function renderCategoryRow(cat, type, index) {
   const editKey = `${type}-${index}`;
   if (state.editingCategory === editKey) return renderCategoryForm(cat, type, index);
 
-  const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-4)', padding: 'var(--sp-2) 0', borderBottom: '1px solid var(--border)' } });
-  row.append(
-    el('span', { style: { fontSize: '20px', flexShrink: '0' } }, cat.icon || '📁'),
-    el('span', { style: { fontWeight: '700', color: cat.color || 'var(--text-primary)', minWidth: '120px' } }, cat.name),
-    (() => {
-      const chips = el('div', { className: 'chip-list', style: { flex: '1' } });
-      (cat.subcategories || []).forEach(sub => chips.append(el('span', { className: 'chip' }, sub)));
-      if (!cat.subcategories?.length) chips.append(el('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', fontStyle: 'italic' } }, 'Sem subcategorias'));
-      return chips;
-    })(),
-    el('div', { style: { display: 'flex', gap: 'var(--sp-1)', flexShrink: '0' } },
-      el('button', { className: 'btn-icon', title: 'Editar', onClick: () => { state.editingCategory = editKey; render(); } }, '✏️'),
-      el('button', { className: 'btn-icon', title: 'Remover', onClick: () => removeCategory(type, index) }, '🗑️')
-    )
+  const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-2) 0', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' } });
+
+  const nameRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', flex: '1', minWidth: '0' } });
+  nameRow.append(
+    el('span', { style: { fontSize: '18px', flexShrink: '0' } }, cat.icon || '📁'),
+    el('span', { style: { fontWeight: '700', color: cat.color || 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, cat.name)
   );
+
+  const actionBtns = el('div', { style: { display: 'flex', gap: 'var(--sp-1)', flexShrink: '0' } });
+  actionBtns.append(
+    el('button', { className: 'btn-icon', title: 'Editar', onClick: () => { state.editingCategory = editKey; render(); } }, '✏️'),
+    el('button', { className: 'btn-icon', title: 'Remover', onClick: () => removeCategory(type, index) }, '🗑️')
+  );
+
+  row.append(nameRow, actionBtns);
+
+  if (cat.subcategories?.length) {
+    const chips = el('div', { className: 'chip-list', style: { width: '100%', paddingLeft: 'var(--sp-6)' } });
+    cat.subcategories.forEach(sub => chips.append(el('span', { className: 'chip' }, sub)));
+    row.append(chips);
+  }
+
   return row;
 }
 
@@ -594,16 +601,17 @@ function buildDatabaseContent(container) {
 
   const testBtn = el('button', { className: 'btn btn-primary', onClick: async () => {
     testBtn.disabled = true; testBtn.textContent = 'Testando...';
-    const result = await testConnection();
-    testBtn.disabled = false; testBtn.textContent = '🔗 Testar Conexão';
-    const statusEl = document.getElementById('db-conn-status');
-    if (statusEl) statusEl.innerHTML = result.success
-      ? '<div class="alert alert-success">✅ Conexão com Supabase OK!</div>'
-      : `<div class="alert alert-error">❌ ${result.error}</div>`;
+    try {
+      const result = await testConnection();
+      testBtn.disabled = false; testBtn.textContent = '🔗 Testar Conexão';
+      showAlert(result.success ? 'Conexão com Supabase OK!' : `Falha: ${result.error}`, result.success ? 'success' : 'error');
+    } catch (err) {
+      testBtn.disabled = false; testBtn.textContent = '🔗 Testar Conexão';
+      showAlert(`Erro: ${err.message}`, 'error');
+    }
   }}, '🔗 Testar Conexão');
 
   container.append(testBtn);
-  container.append(el('div', { id: 'db-conn-status', style: { marginTop: 'var(--sp-2)' } }));
   container.append(el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)' } }, 'Os dados são salvos diretamente no Supabase. Não é necessário configuração adicional.'));
 }
 

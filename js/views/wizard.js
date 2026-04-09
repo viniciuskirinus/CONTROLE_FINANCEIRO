@@ -164,11 +164,11 @@ function renderConnection(content, actions) {
     const el = document.getElementById('wz-conn-result');
     if (result.success) {
       connectionTested = true;
-      el.innerHTML = '<div class="alert alert-success">✅ Conexão com Supabase estabelecida!</div>';
+      el.innerHTML = '<div style="padding:var(--sp-3) var(--sp-4);border-radius:var(--radius);background:var(--color-income-bg);color:var(--color-income);font-weight:500;">✅ Conexão com Supabase estabelecida!</div>';
       const next = document.getElementById('wz-next');
       if (next) next.disabled = false;
     } else {
-      el.innerHTML = `<div class="alert alert-error">❌ Falha na conexão: ${esc(result.error)}</div>`;
+      el.innerHTML = `<div style="padding:var(--sp-3) var(--sp-4);border-radius:var(--radius);background:var(--color-expense-bg);color:var(--color-expense);font-weight:500;">❌ Falha na conexão: ${esc(result.error)}</div>`;
     }
   });
 }
