@@ -6,9 +6,7 @@ import { initSettings } from './views/settings.js';
 import { initSavings } from './views/savings.js';
 import { initSalaryHistory } from './views/salary-history.js';
 import { checkFirstRun, startWizard } from './views/wizard.js';
-import { getRepoConfig, saveRepoConfig } from './modules/storage.js';
 import { getConfig } from './modules/data-service.js';
-import { saveGeminiModel } from './modules/gemini.js';
 import { isAuthenticated } from './modules/auth.js';
 import { showLoginScreen } from './views/login.js';
 
@@ -114,7 +112,7 @@ function escapeHtml(str) {
 // ── Theme ──
 
 function initTheme() {
-  const saved = localStorage.getItem('fvk_theme');
+  const saved = localStorage.getItem('coinly_theme');
   if (saved === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
@@ -126,10 +124,10 @@ function initTheme() {
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       if (isDark) {
         document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('fvk_theme', 'light');
+        localStorage.setItem('coinly_theme', 'light');
       } else {
         document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('fvk_theme', 'dark');
+        localStorage.setItem('coinly_theme', 'dark');
       }
       updateThemeUI();
     });
@@ -147,30 +145,6 @@ function updateThemeUI() {
   if (label) label.textContent = isDark ? 'Modo claro' : 'Modo escuro';
 }
 
-// ── Config Restore ──
-
-async function restoreConfigFromGit() {
-  const existing = getRepoConfig();
-  const hasRepo = existing.owner && existing.repo;
-
-  if (hasRepo) return null;
-
-  try {
-    const config = await getConfig();
-    if (!config) return null;
-
-    if (config.repo?.owner && config.repo?.name) {
-      saveRepoConfig({
-        owner: config.repo.owner,
-        repo: config.repo.name,
-        pat: existing.pat || ''
-      });
-    }
-    if (config.geminiModel) saveGeminiModel(config.geminiModel);
-    return config;
-  } catch { return null; }
-}
-
 // ── Auth Gate ──
 
 async function checkAuth() {
@@ -180,23 +154,12 @@ async function checkAuth() {
   let encryptedSecrets = null;
 
   try {
-    const local = JSON.parse(localStorage.getItem('fvk_data_config') || 'null');
-    if (local?.pinHash) {
-      pinHash = local.pinHash;
-      encryptedSecrets = local.encryptedSecrets || null;
+    const config = await getConfig();
+    if (config?.pinHash) {
+      pinHash = config.pinHash;
+      encryptedSecrets = config.encryptedSecrets || null;
     }
-  } catch { /* ignore */ }
-
-  try {
-    const resp = await fetch('./data/config.json', { cache: 'no-store' });
-    if (resp.ok) {
-      const fresh = await resp.json();
-      if (fresh?.pinHash) {
-        pinHash = fresh.pinHash;
-        encryptedSecrets = fresh.encryptedSecrets || encryptedSecrets;
-      }
-    }
-  } catch { /* offline or not available */ }
+  } catch { /* offline */ }
 
   if (!pinHash) return true;
 
@@ -230,7 +193,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (isFirstRun) {
     startWizard();
   } else {
-    await restoreConfigFromGit();
     await checkAuth();
     navigate('dashboard');
   }

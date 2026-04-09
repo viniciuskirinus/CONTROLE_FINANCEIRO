@@ -1,5 +1,4 @@
 import { verifyPin, setSession, decryptSecrets } from '../modules/auth.js';
-import { saveRepoConfig, getRepoConfig } from '../modules/storage.js';
 import { saveGeminiKey } from '../modules/gemini.js';
 
 export function showLoginScreen(pinHash, encryptedSecrets, onSuccess) {
@@ -9,7 +8,7 @@ export function showLoginScreen(pinHash, encryptedSecrets, onSuccess) {
   screen.hidden = false;
   screen.innerHTML = `
     <div class="login-box">
-      <h1>FinanceiroVK</h1>
+      <h1>Coinly</h1>
       <p>Digite seu PIN para acessar</p>
       <div class="form-group">
         <label for="login-pin" class="form-label" style="text-align:center">PIN de acesso</label>
@@ -43,15 +42,9 @@ export function showLoginScreen(pinHash, encryptedSecrets, onSuccess) {
       if (encryptedSecrets) {
         const secrets = await decryptSecrets(val, encryptedSecrets);
         if (secrets) {
-          if (secrets.pat) {
-            const existing = getRepoConfig();
-            saveRepoConfig({ ...existing, pat: secrets.pat });
-          }
-          if (secrets.geminiKey) {
-            saveGeminiKey(secrets.geminiKey);
-          }
+          if (secrets.geminiKey) saveGeminiKey(secrets.geminiKey);
         } else {
-          console.warn('[login] Falha ao descriptografar segredos. PAT e chave Gemini podem não estar disponíveis.');
+          console.warn('[login] Falha ao descriptografar segredos.');
         }
       }
 

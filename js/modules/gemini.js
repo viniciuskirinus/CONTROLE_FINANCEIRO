@@ -1,5 +1,5 @@
-const GEMINI_KEY = 'financeirovk_gemini_key';
-const GEMINI_MODEL_KEY = 'financeirovk_gemini_model';
+const GEMINI_KEY = 'coinly_gemini_key';
+const GEMINI_MODEL_KEY = 'coinly_gemini_model';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 const AVAILABLE_MODELS = [

@@ -1,7 +1,6 @@
 node_modules/
-.DS_Store
-Thumbs.db
-*.log
+package-lock.json
+setup-database.js
+seed-database.js
+package.json
 .env
-.planning/
-_legacy/

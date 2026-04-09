@@ -1,5 +1,5 @@
-import { isWizardDone, markWizardDone, saveRepoConfig, getRepoConfig } from '../modules/storage.js';
-import { testConnection, dispatch } from '../modules/github-api.js';
+import { isWizardDone, markWizardDone } from '../modules/storage.js';
+import { dispatch, testConnection } from '../modules/github-api.js';
 import { getCategories, getConfig } from '../modules/data-service.js';
 import { formatCurrency } from '../modules/format.js';
 
@@ -7,14 +7,13 @@ let currentStep = 0;
 let connectionTested = false;
 
 const wizardData = {
-  person: { name: '', salary: 0, monthlyGoal: 0, creditCard: { closingDay: 5 } },
-  repo: { owner: '', name: '', pat: '' }
+  person: { name: '', salary: 0, monthlyGoal: 0, creditCard: { closingDay: 5 } }
 };
 
 const STEPS = [
-  { heading: 'Bem-vindo ao FinanceiroVK', render: renderWelcome },
+  { heading: 'Bem-vindo ao Coinly', render: renderWelcome },
   { heading: 'Quem é você?', render: renderPerson },
-  { heading: 'Conectar ao GitHub', render: renderGitHub },
+  { heading: 'Conexão com o banco', render: renderConnection },
   { heading: 'Categorias padrão', render: renderCategories },
   { heading: 'Tudo pronto!', render: renderFinish }
 ];
@@ -62,7 +61,6 @@ function renderStep() {
   const content = document.querySelector('.wizard-content');
   const actions = document.querySelector('.wizard-actions');
   if (!content || !actions) return;
-
   updateProgress();
   STEPS[currentStep].render(content, actions);
 }
@@ -76,17 +74,11 @@ function updateProgress() {
 }
 
 function goNext() {
-  if (currentStep < STEPS.length - 1) {
-    currentStep++;
-    renderStep();
-  }
+  if (currentStep < STEPS.length - 1) { currentStep++; renderStep(); }
 }
 
 function goBack() {
-  if (currentStep > 0) {
-    currentStep--;
-    renderStep();
-  }
+  if (currentStep > 0) { currentStep--; renderStep(); }
 }
 
 function renderWelcome(content, actions) {
@@ -96,7 +88,7 @@ function renderWelcome(content, actions) {
       <h2>${STEPS[0].heading}</h2>
       <p style="color:var(--text-secondary);margin-top:var(--sp-2);">
         Controle suas finanças de forma simples e segura.<br>
-        Seus dados ficam no seu repositório GitHub.
+        Seus dados são armazenados no Supabase.
       </p>
     </div>
   `;
@@ -137,10 +129,7 @@ function renderPerson(content, actions) {
   document.getElementById('wz-back').addEventListener('click', () => { savePerson(); goBack(); });
   document.getElementById('wz-next').addEventListener('click', () => {
     const name = document.getElementById('wz-name').value.trim();
-    if (!name) {
-      document.getElementById('wz-name').focus();
-      return;
-    }
+    if (!name) { document.getElementById('wz-name').focus(); return; }
     savePerson();
     goNext();
   });
@@ -153,107 +142,35 @@ function savePerson() {
   wizardData.person.creditCard.closingDay = parseInt(document.getElementById('wz-closing')?.value) || 5;
 }
 
-function renderGitHub(content, actions) {
-  const repo = getRepoConfig();
-  wizardData.repo.owner = wizardData.repo.owner || repo.owner || '';
-  wizardData.repo.name = wizardData.repo.name || repo.repo || '';
-  wizardData.repo.pat = wizardData.repo.pat || repo.pat || '';
-
+function renderConnection(content, actions) {
   content.innerHTML = `
     <h2>${STEPS[2].heading}</h2>
-    <div class="alert alert-info" style="margin-bottom:var(--sp-4);font-size:0.85rem;">
-      <strong>Como criar um Fine-Grained PAT:</strong>
-      <ol style="margin:var(--sp-1) 0 0 var(--sp-4);padding:0;">
-        <li>Acesse GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens</li>
-        <li>Clique "Generate new token"</li>
-        <li>Em "Repository access", selecione "Only select repositories" e escolha o repo</li>
-        <li>Em "Permissions → Repository permissions", defina "Contents" como "Read and write"</li>
-        <li>Copie o token gerado e cole abaixo</li>
-      </ol>
+    <p style="color:var(--text-secondary);margin-bottom:var(--sp-4);">
+      Testando a conexão com o banco de dados Supabase...
+    </p>
+    <div id="wz-conn-result" style="text-align:center;padding:var(--sp-6);">
+      <div class="spinner spinner-lg"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="wz-owner">Dono do repositório</label>
-      <input class="form-input" id="wz-owner" type="text" required placeholder="seu-usuario-github"
-             value="${esc(wizardData.repo.owner)}">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="wz-repo">Nome do repositório</label>
-      <input class="form-input" id="wz-repo" type="text" required placeholder="financeiro-vk"
-             value="${esc(wizardData.repo.name)}">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="wz-pat">Personal Access Token</label>
-      <input class="form-input" id="wz-pat" type="password" required placeholder="github_pat_..."
-             value="${esc(wizardData.repo.pat)}">
-    </div>
-    <div style="margin-bottom:var(--sp-4);">
-      <button class="btn btn-primary" id="wz-test">
-        <span id="wz-test-label">Testar Conexão</span>
-      </button>
-    </div>
-    <div id="wz-conn-result"></div>
   `;
-
   actions.innerHTML = `
     <button class="btn btn-ghost" id="wz-back">Voltar</button>
-    <button class="btn btn-primary" id="wz-next" ${connectionTested ? '' : 'disabled'}>Próximo</button>
+    <button class="btn btn-primary" id="wz-next" disabled>Próximo</button>
   `;
 
-  document.getElementById('wz-test').addEventListener('click', handleTestConnection);
-  document.getElementById('wz-back').addEventListener('click', () => { saveRepo(); goBack(); });
-  document.getElementById('wz-next').addEventListener('click', () => {
-    if (!connectionTested) return;
-    saveRepo();
-    goNext();
+  document.getElementById('wz-back').addEventListener('click', goBack);
+  document.getElementById('wz-next').addEventListener('click', () => { if (connectionTested) goNext(); });
+
+  testConnection().then(result => {
+    const el = document.getElementById('wz-conn-result');
+    if (result.success) {
+      connectionTested = true;
+      el.innerHTML = '<div class="alert alert-success">✅ Conexão com Supabase estabelecida!</div>';
+      const next = document.getElementById('wz-next');
+      if (next) next.disabled = false;
+    } else {
+      el.innerHTML = `<div class="alert alert-error">❌ Falha na conexão: ${esc(result.error)}</div>`;
+    }
   });
-}
-
-async function handleTestConnection() {
-  const owner = document.getElementById('wz-owner').value.trim();
-  const repo = document.getElementById('wz-repo').value.trim();
-  const pat = document.getElementById('wz-pat').value.trim();
-
-  if (!owner || !repo || !pat) {
-    showConnResult('Preencha todos os campos.', 'error');
-    return;
-  }
-
-  wizardData.repo.owner = owner;
-  wizardData.repo.name = repo;
-  wizardData.repo.pat = pat;
-  saveRepoConfig({ owner, repo, pat });
-
-  const btn = document.getElementById('wz-test');
-  const label = document.getElementById('wz-test-label');
-  btn.disabled = true;
-  label.textContent = 'Testando...';
-
-  const result = await testConnection();
-
-  btn.disabled = false;
-  label.textContent = 'Testar Conexão';
-
-  if (result.success) {
-    connectionTested = true;
-    showConnResult('✅ Conexão estabelecida!', 'success');
-    const next = document.getElementById('wz-next');
-    if (next) next.disabled = false;
-  } else {
-    connectionTested = false;
-    const msg = result.error || 'Token inválido ou sem permissão. Verifique se o PAT tem escopo \'Contents: Write\' para este repositório.';
-    showConnResult(msg, 'error');
-  }
-}
-
-function showConnResult(message, type) {
-  const el = document.getElementById('wz-conn-result');
-  if (el) el.innerHTML = `<div class="alert alert-${type}">${esc(message)}</div>`;
-}
-
-function saveRepo() {
-  wizardData.repo.owner = document.getElementById('wz-owner')?.value.trim() || '';
-  wizardData.repo.name = document.getElementById('wz-repo')?.value.trim() || '';
-  wizardData.repo.pat = document.getElementById('wz-pat')?.value.trim() || '';
 }
 
 async function renderCategories(content, actions) {
@@ -312,7 +229,7 @@ function renderFinish(content, actions) {
         <p><strong>👤 Pessoa:</strong> ${esc(wizardData.person.name)}</p>
         ${wizardData.person.salary ? `<p><strong>💰 Salário:</strong> ${formatCurrency(wizardData.person.salary)}</p>` : ''}
         ${wizardData.person.monthlyGoal ? `<p><strong>🎯 Meta mensal:</strong> ${formatCurrency(wizardData.person.monthlyGoal)}</p>` : ''}
-        <p><strong>🔗 Repositório:</strong> ${esc(wizardData.repo.owner)}/${esc(wizardData.repo.name)}</p>
+        <p><strong>🔗 Banco:</strong> Supabase PostgreSQL</p>
       </div>
     </div>
   `;
@@ -343,20 +260,10 @@ async function finishWizard() {
       currency: 'BRL',
       locale: 'pt-BR',
       timezone: 'America/Sao_Paulo'
-    },
-    repo: {
-      owner: wizardData.repo.owner,
-      name: wizardData.repo.name,
-      configured: true
     }
   };
 
-  const dispatchWithTimeout = Promise.race([
-    dispatch('update-config', configPayload).catch(() => null),
-    new Promise(resolve => setTimeout(() => resolve(null), 5000))
-  ]);
-
-  dispatchWithTimeout.then(() => {}).catch(() => {});
+  await dispatch('update-config', configPayload).catch(() => null);
 
   markWizardDone();
   document.getElementById('wizard-overlay')?.setAttribute('hidden', '');

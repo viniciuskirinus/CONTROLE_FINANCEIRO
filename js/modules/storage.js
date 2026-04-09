@@ -1,20 +1,13 @@
 const KEYS = {
-  REPO_CONFIG: 'financeirovk_repo',
-  WIZARD_DONE: 'financeirovk_wizard_done',
-  PENDING_WRITES: 'financeirovk_pending'
+  WIZARD_DONE: 'coinly_wizard_done',
+  PENDING_WRITES: 'coinly_pending'
 };
 
 export function getRepoConfig() {
-  try {
-    return JSON.parse(localStorage.getItem(KEYS.REPO_CONFIG)) || {};
-  } catch {
-    return {};
-  }
+  return { configured: true };
 }
 
-export function saveRepoConfig(config) {
-  localStorage.setItem(KEYS.REPO_CONFIG, JSON.stringify(config));
-}
+export function saveRepoConfig() {}
 
 export function isWizardDone() {
   return localStorage.getItem(KEYS.WIZARD_DONE) === 'true';
