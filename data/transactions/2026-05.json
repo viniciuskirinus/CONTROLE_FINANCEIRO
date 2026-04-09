@@ -1,0 +1,21 @@
+{
+  "_schema_version": 1,
+  "month": "2026-05",
+  "lastId": 1,
+  "transactions": [
+    {
+      "amount": 2000,
+      "category": "Salário",
+      "createdAt": "2026-04-09T13:16:22.533Z",
+      "date": "2026-05-15",
+      "description": "TESTE",
+      "notes": "",
+      "paymentMethod": "TED/DOC",
+      "person": "lucas",
+      "subcategory": "",
+      "type": "income",
+      "id": 1
+    }
+  ],
+  "updatedAt": "2026-04-09T13:16:22.534Z"
+}
