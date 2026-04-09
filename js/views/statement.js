@@ -231,6 +231,7 @@ function renderTable(section) {
             <td class="${t.type === 'income' ? 'amount-income' : 'amount-expense'}">${t.type === 'income' ? '+' : '-'} ${formatCurrency(t.amount)}</td>
             <td>${escapeHtml(t.person || '')}</td>
             <td>
+              ${t.receiptUrl ? `<button class="btn-icon stmt-receipt" data-url="${escapeHtml(t.receiptUrl)}" title="Ver comprovante">📎</button>` : ''}
               <button class="btn-icon stmt-edit" data-id="${t.id}" title="Editar">✏️</button>
               <button class="btn-icon stmt-delete" data-id="${t.id}" title="Excluir">🗑️</button>
             </td>
@@ -258,6 +259,10 @@ function renderTable(section) {
       else viewState.selectedIds.delete(id);
       updateBulkBar(section);
     });
+  });
+
+  wrapper.querySelectorAll('.stmt-receipt').forEach(btn => {
+    btn.addEventListener('click', () => openReceiptViewer(btn.dataset.url));
   });
 
   wrapper.querySelectorAll('.stmt-edit').forEach(btn => {
@@ -313,6 +318,7 @@ function renderCardList(section) {
           ${t.type === 'income' ? '+' : '-'} ${formatCurrency(t.amount)}
         </span>
         <div class="txn-card-actions">
+          ${t.receiptUrl ? `<button class="btn-icon stmt-receipt" data-url="${escapeHtml(t.receiptUrl)}" title="Ver comprovante">📎</button>` : ''}
           <button class="btn-icon stmt-edit" data-id="${t.id}" title="Editar">✏️</button>
           <button class="btn-icon stmt-delete" data-id="${t.id}" title="Excluir">🗑️</button>
         </div>
@@ -345,6 +351,10 @@ function renderCardList(section) {
       const checkAll = list.querySelector('#stmt-card-check-all');
       if (checkAll) checkAll.checked = txns.every(t => viewState.selectedIds.has(t.id));
     });
+  });
+
+  list.querySelectorAll('.stmt-receipt').forEach(btn => {
+    btn.addEventListener('click', () => openReceiptViewer(btn.dataset.url));
   });
 
   list.querySelectorAll('.stmt-edit').forEach(btn => {
@@ -629,4 +639,70 @@ function escapeHtml(str) {
 
 function escapeAttr(str) {
   return escapeHtml(str);
+}
+
+function openReceiptViewer(url) {
+  if (!url) return;
+
+  const isPdf = url.toLowerCase().endsWith('.pdf');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.maxWidth = '90vw';
+  modal.style.maxHeight = '90vh';
+  modal.style.padding = '0';
+  modal.style.overflow = 'hidden';
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)';
+
+  const title = document.createElement('h3');
+  title.textContent = '📎 Comprovante';
+  title.style.cssText = 'margin:0;font-size:15px';
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;align-items:center';
+
+  const openBtn = document.createElement('a');
+  openBtn.href = url;
+  openBtn.target = '_blank';
+  openBtn.rel = 'noopener';
+  openBtn.className = 'btn btn-ghost';
+  openBtn.textContent = '↗ Abrir';
+  openBtn.style.fontSize = '12px';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.textContent = '✕';
+  closeBtn.addEventListener('click', () => overlay.remove());
+
+  actions.append(openBtn, closeBtn);
+  header.append(title, actions);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;background:var(--bg-body);min-height:200px';
+
+  if (isPdf) {
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.style.cssText = 'width:100%;height:70vh;border:none';
+    body.append(iframe);
+  } else {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Comprovante';
+    img.style.cssText = 'max-width:100%;max-height:75vh;object-fit:contain';
+    img.onerror = () => { body.innerHTML = '<p style="padding:24px;color:var(--text-secondary)">Não foi possível carregar a imagem.</p>'; };
+    body.append(img);
+  }
+
+  modal.append(header, body);
+  overlay.append(modal);
+  document.body.append(overlay);
 }

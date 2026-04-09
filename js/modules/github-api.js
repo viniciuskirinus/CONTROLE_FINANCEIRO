@@ -1,8 +1,22 @@
-import { getSupabase } from './supabase.js';
+import { getSupabase, SUPABASE_URL } from './supabase.js';
 import { invalidateCache } from './data-service.js';
 
 export function isRepoConfigured() {
   return true;
+}
+
+export async function uploadReceiptImage(file) {
+  const sb = getSupabase();
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { error } = await sb.storage.from('receipts').upload(path, file, {
+    contentType: file.type,
+    upsert: false
+  });
+
+  if (error) throw new Error(error.message);
+  return `${SUPABASE_URL}/storage/v1/object/public/receipts/${path}`;
 }
 
 export async function testConnection() {
@@ -38,7 +52,7 @@ async function createTransaction(data, yearMonth) {
   const sb = getSupabase();
   const ym = yearMonth || data.date?.slice(0, 7);
 
-  const { error } = await sb.from('transactions').insert({
+  const row = {
     date: data.date,
     description: data.description,
     amount: data.amount,
@@ -50,7 +64,11 @@ async function createTransaction(data, yearMonth) {
     notes: data.notes || '',
     source: data.source || '',
     year_month: ym
-  });
+  };
+
+  if (data.receiptUrl) row.receipt_url = data.receiptUrl;
+
+  const { error } = await sb.from('transactions').insert(row);
 
   if (error) return { success: false, error: error.message };
   invalidateCache(`txn-${ym}`);

@@ -1,5 +1,5 @@
 import { getConfig, getCategories, getPaymentMethods, getTransactions, putCacheEntry, findDuplicates } from '../modules/data-service.js';
-import { dispatch } from '../modules/github-api.js';
+import { dispatch, uploadReceiptImage } from '../modules/github-api.js';
 import { formatCurrency } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
 import { isGeminiConfigured, analyzeReceipt, analyzeStatement, compressImage } from '../modules/gemini.js';
@@ -411,6 +411,15 @@ async function saveReceiptTransaction(form, people) {
   submitBtn.textContent = 'Salvando...';
 
   try {
+    let receiptUrl = '';
+    if (state.file) {
+      try {
+        receiptUrl = await uploadReceiptImage(state.file);
+      } catch (uploadErr) {
+        console.warn('Receipt upload failed:', uploadErr);
+      }
+    }
+
     const existing = await getTransactions(yearMonth);
     const fileData = existing || { _schema_version: 1, month: yearMonth, lastId: 0, transactions: [] };
 
@@ -423,6 +432,8 @@ async function saveReceiptTransaction(form, people) {
         return;
       }
     }
+
+    if (receiptUrl) txnData.receiptUrl = receiptUrl;
 
     fileData.transactions = [...fileData.transactions, txnData];
     putCacheEntry(`txn-${yearMonth}`, { ...fileData });
@@ -681,6 +692,15 @@ async function saveStatementItems() {
   const saveBtn = document.querySelector('#stmt-save-btn');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Salvando...'; }
 
+  let receiptUrl = '';
+  if (state.file) {
+    try {
+      receiptUrl = await uploadReceiptImage(state.file);
+    } catch (uploadErr) {
+      console.warn('Receipt upload failed:', uploadErr);
+    }
+  }
+
   let successCount = 0;
   let errorCount = 0;
   let dupeCount = 0;
@@ -718,7 +738,8 @@ async function saveStatementItems() {
       paymentMethod,
       notes: '',
       source: 'gemini-statement',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      receiptUrl: receiptUrl || ''
     };
 
     try {

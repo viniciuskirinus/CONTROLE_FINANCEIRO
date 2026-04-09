@@ -115,6 +115,7 @@ export async function getTransactions(yearMonth) {
     paymentMethod: t.payment_method,
     notes: t.notes || '',
     source: t.source || '',
+    receiptUrl: t.receipt_url || '',
     createdAt: t.created_at,
     updatedAt: t.updated_at
   }));
