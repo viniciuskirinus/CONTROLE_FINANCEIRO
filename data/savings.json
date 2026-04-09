@@ -12,14 +12,6 @@
       "targetAmount": 1000
     }
   ],
-  "deposits": [
-    {
-      "amount": 1,
-      "date": "2026-04-08",
-      "goalId": 1,
-      "id": 1,
-      "note": ""
-    }
-  ],
-  "updatedAt": "2026-04-08T20:37:33.042Z"
+  "deposits": [],
+  "updatedAt": "2026-04-09T12:37:07.102Z"
 }
