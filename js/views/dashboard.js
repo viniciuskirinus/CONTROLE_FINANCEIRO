@@ -96,9 +96,20 @@ function getSalaryForMonth(person, yearMonth) {
   return entry ? entry.amount : (person?.salary || 0);
 }
 
+const SALARY_CATS = ['salário', 'salario', 'salary'];
+
+function isSalaryTransaction(t) {
+  if (t.type !== 'income') return false;
+  const cat = (t.category || '').toLowerCase();
+  const desc = (t.description || '').toLowerCase();
+  return SALARY_CATS.some(k => cat.includes(k)) ||
+    ['salário', 'salario', 'salary', 'holerite', 'proventos'].some(k => desc.includes(k));
+}
+
 function renderSummary(transactions, config) {
   const container = document.getElementById('dash-summary');
-  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const nonSalaryIncome = transactions.filter(t => t.type === 'income' && !isSalaryTransaction(t));
+  const income = nonSalaryIncome.reduce((s, t) => s + t.amount, 0);
   const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
 
@@ -114,7 +125,7 @@ function renderSummary(transactions, config) {
     monthlyGoal = person?.monthlyGoal || 0;
   }
 
-  const available = salary > 0 ? salary - expense : balance;
+  const available = salary > 0 ? salary + income - expense : balance;
 
   let html = '';
 
