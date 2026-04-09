@@ -399,10 +399,10 @@
 .empty-state .empty-icon { font-size: 40px; margin-bottom: var(--sp-3); opacity: 0.5; }
 
 /* ── Checkbox ── */
-.checkbox-cell { width: 36px; text-align: center; }
+.checkbox-cell { width: 30px; text-align: center; }
 .checkbox-cell input[type="checkbox"],
 .txn-card-check input[type="checkbox"] {
-  width: 16px; height: 16px;
+  width: 14px; height: 14px;
   accent-color: var(--accent);
   cursor: pointer;
 }
@@ -411,26 +411,26 @@
 .txn-card {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: var(--sp-3) var(--sp-4);
-  margin-bottom: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-1);
   box-shadow: var(--shadow-sm);
   transition: var(--ease);
 }
-.txn-card-top { display: flex; align-items: center; gap: var(--sp-2); }
-.txn-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: var(--sp-1); padding-left: 38px; }
+.txn-card-top { display: flex; align-items: center; gap: var(--sp-1); }
+.txn-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 1px; padding-left: 28px; }
 .txn-card-check { display: flex; align-items: center; flex-shrink: 0; }
 .txn-card-selected { background: var(--accent-muted); }
-.txn-card-icon { font-size: 18px; flex-shrink: 0; }
+.txn-card-icon { font-size: 14px; flex-shrink: 0; }
 .txn-card-info { flex: 1; min-width: 0; }
-.txn-card-desc { font-weight: 600; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.txn-card-meta { font-size: var(--text-xs); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn-card-desc { font-weight: 600; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.txn-card-meta { font-size: var(--text-xs); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
 .txn-card-amount { font-weight: 700; font-size: var(--text-sm); white-space: nowrap; }
-.txn-card-actions { display: flex; gap: var(--sp-1); flex-shrink: 0; }
+.txn-card-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
 /* ── Select All Row (mobile) ── */
 .stmt-select-all-row {
-  padding: var(--sp-2) var(--sp-3);
-  margin-bottom: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  margin-bottom: var(--sp-1);
   background: var(--bg-card);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -445,7 +445,7 @@
   cursor: pointer;
 }
 .stmt-select-all-label input[type="checkbox"] {
-  width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+  width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer;
 }
 
 /* ── Budget ── */
@@ -468,58 +468,35 @@
 .budget-settings-input .currency-label { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 600; flex-shrink: 0; }
 
 @media (max-width: 768px) {
-  .card { padding: var(--sp-4); max-width: 100%; overflow-x: hidden; }
+  .card { max-width: 100%; overflow-x: hidden; }
 
-  .btn { padding: 6px 12px; font-size: 12px; }
-  .btn-icon { min-width: 28px; min-height: 28px; font-size: 14px; }
+  .btn-icon { min-width: 24px; min-height: 24px; font-size: 13px; }
 
-  .form-group { margin-bottom: var(--sp-3); max-width: 100%; }
-  .form-input, .form-select { padding: 6px 10px; font-size: 13px; max-width: 100%; }
-  .form-label { font-size: 10px; }
+  .form-group { max-width: 100%; }
+  .form-input, .form-select { max-width: 100%; }
 
-  .toggle-group { font-size: 12px; max-width: 100%; }
-  .toggle-option { padding: 6px 8px; font-size: 12px; }
+  .toggle-group { max-width: 100%; }
 
-  .section-header { margin-bottom: var(--sp-4); max-width: 100%; }
+  .section-header { max-width: 100%; }
 
-  .filter-bar { gap: var(--sp-1); margin-bottom: var(--sp-3); max-width: 100%; }
-  .filter-bar .form-select, .filter-bar .form-input { font-size: 12px; padding: 6px 8px; min-width: 0 !important; }
+  .filter-bar { gap: var(--sp-1); max-width: 100%; }
+  .filter-bar .form-select, .filter-bar .form-input { min-width: 0 !important; }
 
-  .bulk-bar { padding: 6px 10px; font-size: 12px; gap: var(--sp-1); max-width: 100%; }
+  .bulk-bar { max-width: 100%; }
 
-  .budget-settings-row {
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-  }
-  .budget-settings-category { min-width: auto; flex: 1; font-size: 12px; }
-  .budget-settings-input { max-width: none; min-width: 100px; }
-  .budget-settings-input .form-input { font-size: 12px; }
+  .budget-settings-row { flex-wrap: wrap; }
+  .budget-settings-category { min-width: auto; flex: 1; }
+  .budget-settings-input { max-width: none; min-width: 80px; }
 
-  .budget-item-header { font-size: 12px; }
-  .budget-item-values { font-size: 10px; }
+  .txn-card-top { gap: var(--sp-1); }
+  .txn-card-bottom { padding-left: 28px; margin-top: 1px; }
+  .txn-card-icon { font-size: 14px; }
+  .txn-card-desc { font-size: var(--text-sm); }
+  .txn-card-meta { font-size: var(--text-xs); }
+  .txn-card-amount { font-size: var(--text-sm); }
+  .txn-card-actions .btn-icon { min-width: 22px; min-height: 22px; font-size: 12px; }
 
-  .chip { padding: 1px 8px; font-size: 10px; }
-
-  .accordion-header { padding: var(--sp-3); font-size: 13px; }
-  .accordion-body { padding: var(--sp-3); }
-
-  .data-table th { padding: 6px 8px; font-size: 10px; }
-  .data-table td { padding: 8px; font-size: 12px; }
-
-  .txn-card { padding: var(--sp-2) var(--sp-3); }
-  .txn-card-top { gap: var(--sp-2); }
-  .txn-card-bottom { padding-left: 34px; margin-top: 2px; }
-  .txn-card-icon { font-size: 16px; }
-  .txn-card-desc { font-size: 12px; }
-  .txn-card-meta { font-size: 10px; }
-  .txn-card-amount { font-size: 12px; }
-  .txn-card-actions .btn-icon { min-width: 26px; min-height: 26px; font-size: 13px; }
-
-  .stmt-select-all-row { padding: 6px 10px; }
-  .stmt-select-all-label { font-size: 12px; }
-
-  .empty-state { padding: var(--sp-6) var(--sp-4); }
-  .empty-state .empty-icon { font-size: 32px; }
+  .empty-state .empty-icon { font-size: 28px; }
 }
 
 /* ── Confirm Dialog ── */
@@ -531,13 +508,9 @@
   .modal {
     width: 94%;
     max-width: none;
-    padding: var(--sp-4);
     margin: var(--sp-2);
   }
   .modal-overlay { padding: var(--sp-2); }
-  .modal-header { margin-bottom: var(--sp-3); }
-  .modal-header h3 { font-size: 15px; }
   .modal-actions { flex-wrap: wrap; gap: var(--sp-1); }
-  .modal-actions .btn { flex: 1; min-width: 0; font-size: 12px; padding: 8px 10px; }
-  .confirm-dialog p { font-size: 13px; }
+  .modal-actions .btn { flex: 1; min-width: 0; }
 }

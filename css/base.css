@@ -166,13 +166,12 @@ a:hover { text-decoration: underline; }
 /* ── Mobile ── */
 @media (max-width: 768px) {
   html, body { width: 100% !important; overflow-x: hidden !important; }
-  body { font-size: 13px; }
 
   .sidebar {
     position: fixed;
     bottom: 0; left: 0; top: auto;
     width: 100%;
-    height: 52px;
+    height: 48px;
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
@@ -194,7 +193,7 @@ a:hover { text-decoration: underline; }
 
   .nav-item {
     flex-direction: column;
-    padding: 4px 2px;
+    padding: 3px 2px;
     gap: 1px;
     font-size: 9px;
     min-width: 0;
@@ -207,19 +206,15 @@ a:hover { text-decoration: underline; }
 
   .nav-item.active { background: rgba(99, 102, 241, 0.25); }
 
-  .nav-icon { width: 18px; height: 18px; }
+  .nav-icon { width: 16px; height: 16px; }
   .nav-label { display: block; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48px; }
 
   .main-content {
     margin-left: 0;
-    margin-bottom: 56px;
-    padding: var(--sp-3) var(--sp-3) var(--sp-6);
+    margin-bottom: 52px;
+    padding: var(--sp-3) var(--sp-3) var(--sp-5);
     max-width: 100%;
     overflow-x: hidden;
     width: 100%;
   }
-
-  h1 { font-size: 1.375rem; }
-  h2 { font-size: 1.05rem; }
-  h3 { font-size: 0.9375rem; }
 }

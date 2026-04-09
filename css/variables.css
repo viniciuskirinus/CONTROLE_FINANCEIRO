@@ -83,6 +83,31 @@
   --chart-7: #ec4899;
 }
 
+@media (max-width: 768px) {
+  :root {
+    --text-xs: 0.5625rem;
+    --text-sm: 0.6875rem;
+    --text-base: 0.75rem;
+    --text-lg: 0.8125rem;
+    --text-xl: 1rem;
+    --text-2xl: 1.25rem;
+    --text-3xl: 1.5rem;
+
+    --sp-1: 3px;
+    --sp-2: 6px;
+    --sp-3: 8px;
+    --sp-4: 12px;
+    --sp-5: 16px;
+    --sp-6: 18px;
+    --sp-8: 24px;
+    --sp-10: 32px;
+    --sp-12: 40px;
+
+    --radius: 8px;
+    --radius-lg: 10px;
+  }
+}
+
 [data-theme="dark"] {
   --bg-body: #0b0f1a;
   --bg-card: #141825;
