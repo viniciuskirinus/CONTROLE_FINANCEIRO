@@ -1,4 +1,4 @@
-import { getConfig, getCategories, getTransactions, getPaymentMethods, putCacheEntry } from '../modules/data-service.js';
+import { getConfig, getCategories, getTransactions, getPaymentMethods, putCacheEntry, invalidateCache } from '../modules/data-service.js';
 import { dispatch } from '../modules/github-api.js';
 import { formatCurrency, formatDate, getCurrentYearMonth } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
@@ -141,6 +141,8 @@ async function loadTransactions(section) {
   const content = section.querySelector('#stmt-content');
   if (loading) loading.style.display = '';
   if (content) content.style.display = 'none';
+
+  invalidateCache(`txn-${viewState.yearMonth}`);
 
   try {
     const data = await getTransactions(viewState.yearMonth);

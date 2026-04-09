@@ -395,8 +395,7 @@ function renderRecentTransactions(transactions, categories) {
 }
 
 async function loadDashboard() {
-  invalidateCache(`txn-${currentYearMonth}`);
-  invalidateCache('config');
+  invalidateCache();
 
   const label = document.getElementById('dash-month-label');
   if (label) label.textContent = monthLabel(currentYearMonth);

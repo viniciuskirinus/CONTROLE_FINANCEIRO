@@ -78,12 +78,33 @@ async function editTransaction(data) {
   return { success: true };
 }
 
+const SALARY_CATS = ['salário', 'salario', 'salary'];
+
 async function deleteTransactions(data) {
   const sb = getSupabase();
   const ids = data.ids || [data.id];
 
+  const { data: txns } = await sb.from('transactions').select('*').in('id', ids);
+
   const { error } = await sb.from('transactions').delete().in('id', ids);
   if (error) return { success: false, error: error.message };
+
+  if (txns?.length) {
+    for (const t of txns) {
+      if (t.type !== 'income') continue;
+      const cat = (t.category || '').toLowerCase();
+      const desc = (t.description || '').toLowerCase();
+      const isSalary = SALARY_CATS.some(k => cat.includes(k)) ||
+        ['salário', 'salario', 'salary', 'holerite', 'proventos'].some(k => desc.includes(k));
+      if (isSalary) {
+        await sb.from('salary_history').delete()
+          .eq('person', t.person)
+          .eq('year_month', t.year_month);
+      }
+    }
+    invalidateCache('config');
+  }
+
   return { success: true };
 }
 
