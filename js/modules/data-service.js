@@ -47,7 +47,9 @@ async function fetchJSON(url, cacheKey) {
   const local = getLocalData(cacheKey);
 
   try {
-    const resp = await fetch(url, { cache: 'no-cache' });
+    const bust = `_=${Date.now()}`;
+    const sep = url.includes('?') ? '&' : '?';
+    const resp = await fetch(`${url}${sep}${bust}`, { cache: 'no-store' });
     if (!resp.ok) {
       if (local) {
         cache.set(cacheKey, local);
