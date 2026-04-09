@@ -345,7 +345,7 @@ async function handleSubmit(section, config, categories, people, currentType) {
       const catLower = category.toLowerCase();
       const isSalary = SALARY_KEYWORDS.some(kw => descLower.includes(kw) || catLower.includes(kw));
       if (isSalary) {
-        checkSalaryUpdate(config, person, amount);
+        checkSalaryUpdate(config, person, amount, yearMonth);
       }
     }
 
@@ -370,20 +370,24 @@ async function handleSubmit(section, config, categories, people, currentType) {
   }
 }
 
-async function checkSalaryUpdate(config, personName, amount) {
+async function checkSalaryUpdate(config, personName, amount, yearMonth) {
   if (!config?.people?.length) return;
   const person = config.people.find(p => p.name === personName);
   if (!person) return;
-  const currentSalary = person.salary || 0;
-  if (Math.abs(currentSalary - amount) < 0.01) return;
 
-  const msg = currentSalary > 0
-    ? `Salário detectado: ${formatCurrency(amount)}.\nAtualizar o salário de "${person.name}" (atual: ${formatCurrency(currentSalary)})?`
-    : `Salário detectado: ${formatCurrency(amount)}.\nDefinir como salário de "${person.name}"?`;
+  const history = person.salaryHistory || [];
+  const existingEntry = history.find(h => h.date === yearMonth);
+  if (existingEntry && Math.abs(existingEntry.amount - amount) < 0.01) return;
+
+  const [y, m] = yearMonth.split('-');
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const monthLabel = `${monthNames[parseInt(m) - 1]}/${y}`;
+
+  const msg = `Salário detectado: ${formatCurrency(amount)}.\nRegistrar como salário de "${person.name}" para ${monthLabel}?`;
   if (!confirm(msg)) return;
 
-  await recordSalaryChange(personName, amount);
-  showAlert(`Salário atualizado para ${formatCurrency(amount)}!`, 'success');
+  await recordSalaryChange(personName, amount, yearMonth);
+  showAlert(`Salário de ${monthLabel} registrado: ${formatCurrency(amount)}`, 'success');
 }
 
 function resetForm(section) {

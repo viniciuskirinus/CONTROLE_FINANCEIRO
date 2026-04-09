@@ -92,13 +92,8 @@ function buildLayout(section, people) {
 
 function getSalaryForMonth(person, yearMonth) {
   const history = person?.salaryHistory || [];
-  const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date));
-  let salary = person?.salary || 0;
-  for (const entry of sorted) {
-    if (entry.date <= yearMonth) salary = entry.amount;
-    else break;
-  }
-  return salary;
+  const entry = history.find(h => h.date === yearMonth);
+  return entry ? entry.amount : (person?.salary || 0);
 }
 
 function renderSummary(transactions, config) {

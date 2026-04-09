@@ -294,26 +294,24 @@ export async function initSalaryHistory() {
   render();
 }
 
-export async function recordSalaryChange(personName, newSalary) {
+export async function recordSalaryChange(personName, newSalary, yearMonth) {
   const config = await getConfig();
   if (!config) return;
 
   const person = config.people.find(p => p.name === personName);
   if (!person) return;
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const month = yearMonth || new Date().toISOString().slice(0, 7);
 
   if (!person.salaryHistory) person.salaryHistory = [];
 
-  const existing = person.salaryHistory.find(h => h.date === currentMonth);
+  const existing = person.salaryHistory.find(h => h.date === month);
   if (existing) {
     existing.amount = newSalary;
   } else {
-    person.salaryHistory.push({ date: currentMonth, amount: newSalary });
+    person.salaryHistory.push({ date: month, amount: newSalary });
   }
   person.salaryHistory.sort((a, b) => a.date.localeCompare(b.date));
-
-  person.salary = newSalary;
 
   const updatedConfig = { ...config, _schema_version: config._schema_version || 1 };
   putCacheEntry('config', updatedConfig);

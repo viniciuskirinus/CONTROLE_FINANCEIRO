@@ -442,7 +442,7 @@ async function saveReceiptTransaction(form, people) {
       const descLower = description.toLowerCase();
       const isSalary = SALARY_KEYWORDS.some(kw => descLower.includes(kw));
       if (isSalary) {
-        checkAndOfferSalaryUpdate(person, amount);
+        checkAndOfferSalaryUpdate(person, amount, yearMonth);
       }
     }
 
@@ -751,11 +751,11 @@ async function saveStatementItems() {
   }
 
   for (const item of items) {
-    if ((item.type || 'expense') === 'income' && item.amount > 0) {
+    if ((item.type || 'expense') === 'income' && item.amount > 0 && item.date) {
       const descLower = (item.description || '').toLowerCase();
       const isSalary = SALARY_KEYWORDS.some(kw => descLower.includes(kw));
       if (isSalary) {
-        checkAndOfferSalaryUpdate(person, item.amount);
+        checkAndOfferSalaryUpdate(person, item.amount, item.date.slice(0, 7));
         break;
       }
     }
@@ -767,24 +767,26 @@ async function saveStatementItems() {
   render();
 }
 
-async function checkAndOfferSalaryUpdate(personName, amount) {
+async function checkAndOfferSalaryUpdate(personName, amount, yearMonth) {
   const config = state.config;
   if (!config?.people?.length) return;
 
   const person = config.people.find(p => p.name === personName);
   if (!person) return;
 
-  const currentSalary = person.salary || 0;
-  if (Math.abs(currentSalary - amount) < 0.01) return;
+  const history = person.salaryHistory || [];
+  const existingEntry = history.find(h => h.date === yearMonth);
+  if (existingEntry && Math.abs(existingEntry.amount - amount) < 0.01) return;
 
-  const msg = currentSalary > 0
-    ? `Salário detectado: ${formatCurrency(amount)}.\n\nAtualizar o salário de "${person.name}" (atual: ${formatCurrency(currentSalary)})?`
-    : `Salário detectado: ${formatCurrency(amount)}.\n\nDefinir como salário de "${person.name}"?`;
+  const [y, m] = yearMonth.split('-');
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const monthLabel = `${monthNames[parseInt(m) - 1]}/${y}`;
 
+  const msg = `Salário detectado: ${formatCurrency(amount)}.\n\nRegistrar como salário de "${person.name}" para ${monthLabel}?`;
   if (!confirm(msg)) return;
 
-  await recordSalaryChange(personName, amount);
-  showAlert(`Salário de "${person.name}" atualizado para ${formatCurrency(amount)}!`, 'success');
+  await recordSalaryChange(personName, amount, yearMonth);
+  showAlert(`Salário de ${monthLabel} registrado: ${formatCurrency(amount)}`, 'success');
 }
 
 function buildFormGroup(label, input) {
