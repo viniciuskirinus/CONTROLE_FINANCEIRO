@@ -1,5 +1,5 @@
 import { verifyPin, setSession, decryptSecrets } from '../modules/auth.js';
-import { saveGeminiKey } from '../modules/gemini.js';
+import { saveGeminiKey, saveOpenRouterKey } from '../modules/gemini.js';
 
 export function showLoginScreen(pinHash, encryptedSecrets, onSuccess) {
   const screen = document.getElementById('login-screen');
@@ -43,6 +43,7 @@ export function showLoginScreen(pinHash, encryptedSecrets, onSuccess) {
         const secrets = await decryptSecrets(val, encryptedSecrets);
         if (secrets) {
           if (secrets.geminiKey) saveGeminiKey(secrets.geminiKey);
+          if (secrets.openRouterKey) saveOpenRouterKey(secrets.openRouterKey);
         } else {
           console.warn('[login] Falha ao descriptografar segredos.');
         }

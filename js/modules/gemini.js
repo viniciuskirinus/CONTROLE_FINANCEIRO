@@ -2,12 +2,71 @@ const GEMINI_KEY = 'coinly_gemini_key';
 const GEMINI_MODEL_KEY = 'coinly_gemini_model';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 
+const AI_PROVIDER_KEY = 'coinly_ai_provider';
+const OPENROUTER_KEY = 'coinly_openrouter_key';
+const OPENROUTER_MODEL_KEY = 'coinly_openrouter_model';
+const OPENROUTER_MODELS_CACHE = 'coinly_openrouter_models_cache';
+
+const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+
 const AVAILABLE_MODELS = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (estável, 20 req/dia)' },
   { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (estável, 20 req/dia)' },
   { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite (500 req/dia!)' },
   { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (20 req/dia)' },
 ];
+
+export function getAiProvider() {
+  return localStorage.getItem(AI_PROVIDER_KEY) || 'gemini';
+}
+
+export function saveAiProvider(provider) {
+  const v = provider === 'openrouter' ? 'openrouter' : 'gemini';
+  localStorage.setItem(AI_PROVIDER_KEY, v);
+}
+
+export function getOpenRouterKey() {
+  return localStorage.getItem(OPENROUTER_KEY) || '';
+}
+
+export function saveOpenRouterKey(key) {
+  if (key) localStorage.setItem(OPENROUTER_KEY, key.trim());
+  else localStorage.removeItem(OPENROUTER_KEY);
+}
+
+export function getOpenRouterModel() {
+  return localStorage.getItem(OPENROUTER_MODEL_KEY) || '';
+}
+
+export function saveOpenRouterModel(model) {
+  if (model) localStorage.setItem(OPENROUTER_MODEL_KEY, model);
+  else localStorage.removeItem(OPENROUTER_MODEL_KEY);
+}
+
+export function getOpenRouterModelsCache() {
+  try {
+    const raw = localStorage.getItem(OPENROUTER_MODELS_CACHE);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveOpenRouterModelsList(models) {
+  if (models?.length) localStorage.setItem(OPENROUTER_MODELS_CACHE, JSON.stringify(models));
+  else localStorage.removeItem(OPENROUTER_MODELS_CACHE);
+}
+
+/** Sincroniza preferências de IA vindas do Supabase (app_config) para o localStorage. */
+export function hydrateAiFromRemoteConfig(config) {
+  if (!config) return;
+  if (config.geminiModel) saveGeminiModel(config.geminiModel);
+  if (config.aiProvider === 'openrouter' || config.aiProvider === 'gemini') saveAiProvider(config.aiProvider);
+  if (config.openRouterModel) saveOpenRouterModel(config.openRouterModel);
+}
 
 export function getGeminiKey() {
   return localStorage.getItem(GEMINI_KEY) || '';
@@ -30,13 +89,44 @@ export function getAvailableModels() {
   return AVAILABLE_MODELS;
 }
 
+export function isAiConfigured() {
+  return getAiProvider() === 'openrouter' ? !!getOpenRouterKey() : !!getGeminiKey();
+}
+
 export function isGeminiConfigured() {
-  return !!getGeminiKey();
+  return isAiConfigured();
 }
 
 function getApiUrl() {
   const model = getGeminiModel();
   return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+function openRouterHeaders(apiKey) {
+  const referer = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://localhost';
+  return {
+    Authorization: `Bearer ${apiKey.trim()}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': referer,
+    'X-Title': 'Coinly'
+  };
+}
+
+function partsToOpenRouterUserContent(parts) {
+  const content = [];
+  for (const p of parts) {
+    if (p.text != null) content.push({ type: 'text', text: p.text });
+    else if (p.inlineData?.data) {
+      const mt = p.inlineData.mimeType || 'image/jpeg';
+      content.push({
+        type: 'image_url',
+        image_url: { url: `data:${mt};base64,${p.inlineData.data}` }
+      });
+    }
+  }
+  return content;
 }
 
 const MAX_RETRIES = 3;
@@ -50,7 +140,7 @@ export function setAlertFunction(fn) {
 
 function notifyUser(msg, type = 'warning') {
   if (_showAlertFn) _showAlertFn(msg, type);
-  else console.warn(`[Gemini] ${msg}`);
+  else console.warn(`[IA] ${msg}`);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -58,11 +148,64 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function isRetryableError(status, body) {
   if (status === 429) return true;
   if (status === 503) return true;
-  const msg = (body?.error?.message || '').toLowerCase();
+  const msg = (body?.error?.message || body?.message || '').toLowerCase();
   return msg.includes('overloaded') || msg.includes('resource exhausted') || msg.includes('temporarily unavailable');
 }
 
-async function callGemini(parts) {
+async function callOpenRouterChat(parts) {
+  const key = getOpenRouterKey();
+  if (!key) throw new Error('Chave da API OpenRouter não configurada.');
+
+  const model = getOpenRouterModel();
+  if (!model) throw new Error('Selecione um modelo OpenRouter nas configurações (carregue a lista e escolha).');
+
+  console.log(`[OpenRouter] modelo: ${model}`);
+
+  const messages = [{ role: 'user', content: partsToOpenRouterUserContent(parts) }];
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const resp = await fetch(OPENROUTER_CHAT_URL, {
+      method: 'POST',
+      headers: openRouterHeaders(key),
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: 8192
+      })
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      let text = data?.choices?.[0]?.message?.content;
+      if (Array.isArray(text)) {
+        text = text.map(b => (typeof b === 'string' ? b : b?.text || '')).join('');
+      }
+      if (!text || !String(text).trim()) throw new Error('Resposta vazia da API OpenRouter.');
+      return String(text).trim();
+    }
+
+    const body = await resp.json().catch(() => null);
+    const msg = body?.error?.message || body?.message || `HTTP ${resp.status}`;
+
+    if (isRetryableError(resp.status, body) && attempt < MAX_RETRIES) {
+      const waitSec = (RETRY_DELAY_MS * attempt) / 1000;
+      notifyUser(`Serviço ocupado. Tentando novamente em ${waitSec}s... (tentativa ${attempt}/${MAX_RETRIES})`, 'warning');
+      await sleep(RETRY_DELAY_MS * attempt);
+      continue;
+    }
+
+    if (resp.status === 401) throw new Error('Chave OpenRouter inválida ou expirada.');
+    if (resp.status === 400) throw new Error(`Requisição inválida: ${msg}`);
+    if (resp.status === 402) throw new Error('Créditos insuficientes na OpenRouter ou modelo pago.');
+    if (resp.status === 429) throw new Error('Limite de requisições atingido. Aguarde ou troque de modelo/plano.');
+    if (resp.status === 503) throw new Error('Modelo temporariamente indisponível. Tente novamente em alguns minutos.');
+    throw new Error(`Erro OpenRouter: ${msg}`);
+  }
+
+  throw new Error('Número máximo de tentativas atingido.');
+}
+
+async function callGeminiApi(parts) {
   const key = getGeminiKey();
   if (!key) throw new Error('Chave da API Gemini não configurada.');
 
@@ -102,6 +245,11 @@ async function callGemini(parts) {
   }
 
   throw new Error('Número máximo de tentativas atingido.');
+}
+
+async function generateFromParts(parts) {
+  if (getAiProvider() === 'openrouter') return callOpenRouterChat(parts);
+  return callGeminiApi(parts);
 }
 
 function extractJSON(text) {
@@ -158,7 +306,7 @@ Regras:
     { text: prompt }
   ];
 
-  const text = await callGemini(parts);
+  const text = await generateFromParts(parts);
   return extractJSON(text);
 }
 
@@ -197,7 +345,7 @@ Regras:
     { text: prompt }
   ];
 
-  const text = await callGemini(parts);
+  const text = await generateFromParts(parts);
   const result = extractJSON(text);
   return result.items || result;
 }
@@ -224,7 +372,7 @@ Regras:
 - Escolha a categoria mais provável para essa descrição
 - confidence indica o quão confiante você está na sugestão`;
 
-  const text = await callGemini([{ text: prompt }]);
+  const text = await generateFromParts([{ text: prompt }]);
   return extractJSON(text);
 }
 
@@ -246,6 +394,55 @@ export async function testApiKey(key, model) {
   if (resp.status === 429) return { success: false, error: 'Cota excedida para este modelo. Tente outro modelo.' };
   const body = await resp.json().catch(() => null);
   return { success: false, error: body?.error?.message || `Erro HTTP ${resp.status}` };
+}
+
+export async function fetchOpenRouterModels(apiKey) {
+  const key = (apiKey || '').trim();
+  if (!key) return { success: false, error: 'Informe a chave da API OpenRouter.' };
+
+  const resp = await fetch(OPENROUTER_MODELS_URL, { headers: openRouterHeaders(key) });
+  const body = await resp.json().catch(() => null);
+
+  if (!resp.ok) {
+    const msg = body?.error?.message || body?.message || `HTTP ${resp.status}`;
+    return { success: false, error: msg };
+  }
+
+  const rows = (body?.data || [])
+    .map(m => ({
+      id: m.id,
+      name: (m.name && String(m.name).trim()) ? m.name : m.id
+    }))
+    .filter(m => m.id);
+
+  rows.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt'));
+  saveOpenRouterModelsList(rows);
+  return { success: true, models: rows };
+}
+
+export async function testOpenRouterApiKey(key, model) {
+  const trimmed = (key || '').trim();
+  if (!trimmed) return { success: false, error: 'Informe a chave para testar.' };
+
+  const m = model || getOpenRouterModel();
+  if (!m) return { success: false, error: 'Selecione um modelo (use «Carregar modelos» e escolha na lista).' };
+
+  const resp = await fetch(OPENROUTER_CHAT_URL, {
+    method: 'POST',
+    headers: openRouterHeaders(trimmed),
+    body: JSON.stringify({
+      model: m,
+      messages: [{ role: 'user', content: 'Responda apenas: OK' }],
+      max_tokens: 16
+    })
+  });
+
+  if (resp.ok) return { success: true };
+  if (resp.status === 401) return { success: false, error: 'Chave inválida ou sem permissão.' };
+  if (resp.status === 402) return { success: false, error: 'Créditos insuficientes ou modelo exige pagamento.' };
+  if (resp.status === 429) return { success: false, error: 'Limite de taxa ou cota excedida.' };
+  const body = await resp.json().catch(() => null);
+  return { success: false, error: body?.error?.message || body?.message || `Erro HTTP ${resp.status}` };
 }
 
 export async function compressImage(file, maxSizeKB = 1024) {

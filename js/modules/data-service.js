@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase.js';
+import { hydrateAiFromRemoteConfig } from './gemini.js';
 
 const cache = new Map();
 
@@ -64,9 +65,12 @@ export async function getConfig() {
     budgets: budgetMap,
     pinHash: appCfg.pin_hash || null,
     encryptedSecrets: appCfg.encrypted_secrets || null,
-    geminiModel: appCfg.gemini_model || null
+    geminiModel: appCfg.gemini_model || null,
+    aiProvider: appCfg.ai_provider || null,
+    openRouterModel: appCfg.openrouter_model || null
   };
 
+  hydrateAiFromRemoteConfig(config);
   cache.set('config', config);
   return config;
 }

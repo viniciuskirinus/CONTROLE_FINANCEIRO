@@ -3,7 +3,11 @@ import { dispatch, testConnection } from '../modules/github-api.js';
 import { isWizardDone } from '../modules/storage.js';
 import { formatCurrency } from '../modules/format.js';
 import { showAlert, showConfirm } from '../app.js';
-import { getGeminiKey, saveGeminiKey, isGeminiConfigured, testApiKey, getGeminiModel, saveGeminiModel, getAvailableModels } from '../modules/gemini.js';
+import {
+  getGeminiKey, saveGeminiKey, isGeminiConfigured, testApiKey, getGeminiModel, saveGeminiModel, getAvailableModels,
+  getAiProvider, saveAiProvider, getOpenRouterKey, saveOpenRouterKey, getOpenRouterModel, saveOpenRouterModel,
+  getOpenRouterModelsCache, fetchOpenRouterModels, testOpenRouterApiKey
+} from '../modules/gemini.js';
 import { hashPin, logout, encryptSecrets } from '../modules/auth.js';
 
 let state = {
@@ -462,72 +466,221 @@ async function removePaymentMethod(index) {
   else showAlert(`Erro: ${result.error}`, 'error');
 }
 
-// ─── Gemini AI Section ───
+// ─── IA (Gemini / OpenRouter) ───
 
 function buildGeminiContent(container) {
+  const provider = getAiProvider();
   const configured = isGeminiConfigured();
-  const currentKey = getGeminiKey();
   const statusRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-6)' } });
-  statusRow.append(el('span', { style: { fontSize: '20px' } }, configured ? '✅' : '⚠️'), el('span', { style: { fontWeight: '600' } }, configured ? 'Chave configurada' : 'Chave não configurada'));
+  const provLabel = provider === 'openrouter' ? 'OpenRouter' : 'Gemini';
+  statusRow.append(
+    el('span', { style: { fontSize: '20px' } }, configured ? '✅' : '⚠️'),
+    el('span', { style: { fontWeight: '600' } }, configured ? `${provLabel} pronto` : `Configure o provedor ativo (${provLabel})`)
+  );
   container.append(statusRow);
 
+  const provGroup = el('div', { className: 'form-group' });
+  provGroup.append(el('label', { className: 'form-label' }, 'Provedor ativo'));
+  const providerSelect = el('select', { className: 'form-input', id: 'ai-provider-select' });
+  providerSelect.append(
+    el('option', { value: 'gemini' }, 'Google Gemini'),
+    el('option', { value: 'openrouter' }, 'OpenRouter')
+  );
+  providerSelect.value = provider;
+  providerSelect.addEventListener('change', () => {
+    saveAiProvider(providerSelect.value);
+    render();
+  });
+  provGroup.append(providerSelect);
+  container.append(provGroup);
+
+  // —— Gemini ——
+  const geminiBlock = el('div', { id: 'gemini-settings-block', style: { display: provider === 'gemini' ? '' : 'none', marginTop: 'var(--sp-5)' } });
+  geminiBlock.append(el('h4', { style: { margin: '0 0 var(--sp-3)', fontSize: 'var(--text-md)', fontWeight: '600' } }, 'Google Gemini'));
+
+  const currentGeminiKey = getGeminiKey();
   const keyGroup = el('div', { className: 'form-group' });
-  keyGroup.append(el('label', { className: 'form-label' }, 'Chave da API'));
+  keyGroup.append(el('label', { className: 'form-label' }, 'Chave da API Gemini'));
   const inputRow = el('div', { style: { display: 'flex', gap: 'var(--sp-2)' } });
-  const keyInput = el('input', { className: 'form-input', type: 'password', id: 'gemini-key-input', value: currentKey, placeholder: 'Cole sua chave da API Gemini', style: { flex: '1' } });
-  const toggleBtn = el('button', { className: 'btn btn-ghost', type: 'button', onClick: () => { const inp = document.getElementById('gemini-key-input'); if (inp) { inp.type = inp.type === 'password' ? 'text' : 'password'; toggleBtn.textContent = inp.type === 'password' ? '👁️' : '🙈'; } } }, '👁️');
-  inputRow.append(keyInput, toggleBtn);
+  const keyInput = el('input', { className: 'form-input', type: 'password', id: 'gemini-key-input', value: currentGeminiKey, placeholder: 'Chave em aistudio.google.com/apikey', style: { flex: '1' } });
+  const toggleGem = el('button', { className: 'btn btn-ghost', type: 'button', onClick: () => { const inp = document.getElementById('gemini-key-input'); if (inp) { inp.type = inp.type === 'password' ? 'text' : 'password'; toggleGem.textContent = inp.type === 'password' ? '👁️' : '🙈'; } } }, '👁️');
+  inputRow.append(keyInput, toggleGem);
   keyGroup.append(inputRow);
-  container.append(keyGroup);
+  geminiBlock.append(keyGroup);
 
   const modelGroup = el('div', { className: 'form-group', style: { marginTop: 'var(--sp-4)' } });
-  modelGroup.append(el('label', { className: 'form-label' }, 'Modelo'));
+  modelGroup.append(el('label', { className: 'form-label' }, 'Modelo Gemini'));
   const modelSelect = el('select', { className: 'form-input', id: 'gemini-model-select' });
   const currentModel = getGeminiModel();
-  getAvailableModels().forEach(m => { const opt = el('option', { value: m.id }, m.name); if (m.id === currentModel) opt.selected = true; modelSelect.append(opt); });
+  getAvailableModels().forEach(m => {
+    const opt = el('option', { value: m.id }, m.name);
+    if (m.id === currentModel) opt.selected = true;
+    modelSelect.append(opt);
+  });
   modelGroup.append(modelSelect);
-  container.append(modelGroup);
+  geminiBlock.append(modelGroup);
+  container.append(geminiBlock);
+
+  // —— OpenRouter ——
+  const orBlock = el('div', { id: 'openrouter-settings-block', style: { display: provider === 'openrouter' ? '' : 'none', marginTop: 'var(--sp-5)' } });
+  orBlock.append(el('h4', { style: { margin: '0 0 var(--sp-3)', fontSize: 'var(--text-md)', fontWeight: '600' } }, 'OpenRouter'));
+
+  const orKeyGroup = el('div', { className: 'form-group' });
+  orKeyGroup.append(el('label', { className: 'form-label' }, 'Chave da API OpenRouter'));
+  const orRow = el('div', { style: { display: 'flex', gap: 'var(--sp-2)' } });
+  const orKeyInput = el('input', { className: 'form-input', type: 'password', id: 'openrouter-key-input', value: getOpenRouterKey(), placeholder: 'sk-or-... em openrouter.ai/keys', style: { flex: '1' } });
+  const toggleOr = el('button', { className: 'btn btn-ghost', type: 'button', onClick: () => { const inp = document.getElementById('openrouter-key-input'); if (inp) { inp.type = inp.type === 'password' ? 'text' : 'password'; toggleOr.textContent = inp.type === 'password' ? '👁️' : '🙈'; } } }, '👁️');
+  orRow.append(orKeyInput, toggleOr);
+  orKeyGroup.append(orRow);
+  orBlock.append(orKeyGroup);
+
+  const orModelWrap = el('div', { className: 'form-group', style: { marginTop: 'var(--sp-4)' } });
+  orModelWrap.append(el('label', { className: 'form-label' }, 'Modelo (lista da sua conta)'));
+  orModelWrap.append(el('input', { className: 'form-input', type: 'search', id: 'openrouter-model-filter', placeholder: 'Filtrar por nome ou id...', style: { marginBottom: 'var(--sp-2)' } }));
+  const orModelSelect = el('select', { className: 'form-input', id: 'openrouter-model-select', size: 10, style: { minHeight: '200px' } });
+  const orCached = getOpenRouterModelsCache();
+  const curOrModel = getOpenRouterModel();
+  if (!orCached.length) {
+    orModelSelect.append(el('option', { value: '' }, 'Clique em «Carregar modelos» após colar a chave'));
+  } else {
+    orCached.forEach(m => {
+      const label = m.name !== m.id ? `${m.name} — ${m.id}` : m.id;
+      const opt = el('option', { value: m.id }, label);
+      if (m.id === curOrModel) opt.selected = true;
+      orModelSelect.append(opt);
+    });
+  }
+  orModelWrap.append(orModelSelect);
+  orBlock.append(orModelWrap);
+
+  const loadModelsBtn = el('button', { className: 'btn btn-ghost', type: 'button', id: 'openrouter-load-models-btn', style: { marginTop: 'var(--sp-2)' }, onClick: async () => {
+    const k = document.getElementById('openrouter-key-input')?.value.trim();
+    if (!k) { showAlert('Cole a chave OpenRouter antes.', 'error'); return; }
+    const btn = document.getElementById('openrouter-load-models-btn');
+    btn.disabled = true; btn.textContent = 'Carregando...';
+    try {
+      const res = await fetchOpenRouterModels(k);
+      if (res.success) {
+        saveOpenRouterKey(k);
+        showAlert(`${res.models.length} modelos disponíveis. Escolha um na lista.`, 'success');
+        render();
+      } else {
+        showAlert(`Falha ao listar: ${res.error}`, 'error');
+      }
+    } catch (e) { showAlert(`Erro: ${e.message}`, 'error'); }
+    finally { btn.disabled = false; btn.textContent = '📥 Carregar modelos'; }
+  }}, '📥 Carregar modelos');
+  orBlock.append(loadModelsBtn);
+  container.append(orBlock);
+
+  const filt = () => {
+    const q = (document.getElementById('openrouter-model-filter')?.value || '').trim().toLowerCase();
+    const sel = document.getElementById('openrouter-model-select');
+    if (!sel) return;
+    Array.from(sel.options).forEach(opt => {
+      if (!opt.value) { opt.hidden = false; return; }
+      const t = `${opt.value} ${opt.textContent}`.toLowerCase();
+      opt.hidden = !!(q && !t.includes(q));
+    });
+  };
+  document.getElementById('openrouter-model-filter')?.addEventListener('input', filt);
+
+  async function persistAiSecrets() {
+    const prov = document.getElementById('ai-provider-select')?.value || getAiProvider();
+    const gKey = document.getElementById('gemini-key-input')?.value.trim() ?? '';
+    const orKey = document.getElementById('openrouter-key-input')?.value.trim() ?? '';
+    const selGemini = document.getElementById('gemini-model-select')?.value;
+    const selOr = document.getElementById('openrouter-model-select')?.value;
+
+    saveAiProvider(prov);
+    saveGeminiKey(gKey);
+    saveOpenRouterKey(orKey);
+    if (selGemini) saveGeminiModel(selGemini);
+    if (selOr) saveOpenRouterModel(selOr);
+    else if (prov === 'openrouter') saveOpenRouterModel('');
+
+    const updatedConfig = {
+      ...state.config,
+      geminiModel: selGemini || undefined,
+      aiProvider: prov,
+      openRouterModel: selOr || undefined
+    };
+    const pin = sessionStorage.getItem('fvk_pin');
+    if (pin) {
+      updatedConfig.encryptedSecrets = await encryptSecrets(pin, {
+        pat: '',
+        geminiKey: gKey || '',
+        openRouterKey: orKey || ''
+      });
+    }
+    state.config = updatedConfig;
+    dispatch('update-config', updatedConfig).catch(() => {});
+  }
 
   const actions = el('div', { style: { display: 'flex', gap: 'var(--sp-2)', marginTop: 'var(--sp-4)', flexWrap: 'wrap' } });
 
   actions.append(
     el('button', { className: 'btn btn-primary', onClick: async () => {
-      const val = document.getElementById('gemini-key-input')?.value.trim();
-      const selModel = document.getElementById('gemini-model-select')?.value;
-      saveGeminiKey(val);
-      if (selModel) saveGeminiModel(selModel);
-
-      const updatedConfig = { ...state.config, geminiModel: selModel || undefined };
-      const pin = sessionStorage.getItem('fvk_pin');
-      if (pin) updatedConfig.encryptedSecrets = await encryptSecrets(pin, { pat: '', geminiKey: val || '' });
-
-      state.config = updatedConfig;
-      dispatch('update-config', updatedConfig).catch(() => {});
-      showAlert(val ? 'Chave e modelo salvos!' : 'Chave removida.', 'success');
+      await persistAiSecrets();
+      const prov = getAiProvider();
+      const ok = prov === 'openrouter' ? !!getOpenRouterKey() : !!getGeminiKey();
+      showAlert(ok ? 'Configuração de IA salva!' : 'Chaves do provedor ativo removidas.', ok ? 'success' : 'success');
       render();
     }}, '💾 Salvar'),
-    el('button', { className: 'btn btn-ghost', id: 'gemini-test-btn', onClick: async () => {
-      const val = document.getElementById('gemini-key-input')?.value.trim();
-      const selModel = document.getElementById('gemini-model-select')?.value;
-      if (!val) { showAlert('Digite uma chave para testar.', 'error'); return; }
-      const btn = document.getElementById('gemini-test-btn');
-      btn.disabled = true; btn.textContent = 'Testando...';
+    el('button', { className: 'btn btn-ghost', id: 'ia-test-btn', onClick: async () => {
+      const prov = document.getElementById('ai-provider-select')?.value || getAiProvider();
+      const btn = document.getElementById('ia-test-btn');
+      btn.disabled = true;
+      btn.textContent = 'Testando...';
       try {
-        const result = await testApiKey(val, selModel);
-        showAlert(result.success ? `Conexão OK com ${selModel}!` : `Falha: ${result.error}`, result.success ? 'success' : 'error');
+        if (prov === 'openrouter') {
+          const val = document.getElementById('openrouter-key-input')?.value.trim();
+          const selModel = document.getElementById('openrouter-model-select')?.value;
+          if (!val) { showAlert('Digite a chave OpenRouter.', 'error'); return; }
+          const result = await testOpenRouterApiKey(val, selModel);
+          showAlert(result.success ? `Conexão OK (${selModel || 'modelo salvo'})!` : `Falha: ${result.error}`, result.success ? 'success' : 'error');
+        } else {
+          const val = document.getElementById('gemini-key-input')?.value.trim();
+          const selModel = document.getElementById('gemini-model-select')?.value;
+          if (!val) { showAlert('Digite a chave Gemini.', 'error'); return; }
+          const result = await testApiKey(val, selModel);
+          showAlert(result.success ? `Conexão OK com ${selModel}!` : `Falha: ${result.error}`, result.success ? 'success' : 'error');
+        }
       } catch (err) { showAlert(`Erro: ${err.message}`, 'error'); }
-      finally { btn.disabled = false; btn.textContent = '🔗 Testar Conexão'; }
-    }}, '🔗 Testar Conexão')
+      finally { btn.disabled = false; btn.textContent = '🔗 Testar conexão'; }
+    }}, '🔗 Testar conexão')
   );
 
-  if (configured) actions.append(el('button', { className: 'btn btn-ghost', style: { color: 'var(--color-expense)' }, onClick: async () => {
-    if (!await showConfirm('Remover chave', 'Remover a chave da API Gemini?', { confirmText: 'Remover', danger: true })) return;
-    saveGeminiKey(''); showAlert('Chave removida.', 'success'); render();
-  }}, '🗑️ Remover'));
+  if (provider === 'gemini' && getGeminiKey()) {
+    actions.append(el('button', { className: 'btn btn-ghost', style: { color: 'var(--color-expense)' }, onClick: async () => {
+      if (!await showConfirm('Remover chave', 'Remover a chave da API Gemini?', { confirmText: 'Remover', danger: true })) return;
+      saveGeminiKey('');
+      const gin = document.getElementById('gemini-key-input');
+      if (gin) gin.value = '';
+      await persistAiSecrets();
+      showAlert('Chave Gemini removida.', 'success');
+      render();
+    }}, '🗑️ Remover chave Gemini'));
+  }
+  if (provider === 'openrouter' && getOpenRouterKey()) {
+    actions.append(el('button', { className: 'btn btn-ghost', style: { color: 'var(--color-expense)' }, onClick: async () => {
+      if (!await showConfirm('Remover chave', 'Remover a chave OpenRouter?', { confirmText: 'Remover', danger: true })) return;
+      saveOpenRouterKey('');
+      saveOpenRouterModel('');
+      const oin = document.getElementById('openrouter-key-input');
+      if (oin) oin.value = '';
+      await persistAiSecrets();
+      showAlert('Chave OpenRouter removida.', 'success');
+      render();
+    }}, '🗑️ Remover chave OpenRouter'));
+  }
 
   container.append(actions);
   container.append(el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-6)', lineHeight: '1.5' } },
-    '🔐 A chave é criptografada com seu PIN. Obtenha em: ', el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', style: { color: 'var(--accent)' } }, 'aistudio.google.com')
+    '🔐 As chaves são criptografadas com seu PIN quando você salva. Comprovantes com PDF podem falhar em alguns modelos OpenRouter; prefira modelos com visão (imagem). ',
+    el('a', { href: 'https://openrouter.ai', target: '_blank', rel: 'noopener', style: { color: 'var(--accent)' } }, 'openrouter.ai'),
+    ' · ',
+    el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', style: { color: 'var(--accent)' } }, 'Gemini API')
   ));
 }
 
@@ -551,7 +704,7 @@ function buildSecurityContent(container) {
     );
   }
   container.append(actions);
-  container.append(el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)', lineHeight: '1.6' } }, 'O PIN é armazenado como hash SHA-256. A chave Gemini é criptografada com AES-256 usando seu PIN.'));
+  container.append(el('p', { style: { color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--sp-4)', lineHeight: '1.6' } }, 'O PIN é armazenado como hash SHA-256. As chaves de IA (Gemini e OpenRouter) são criptografadas com AES-256 usando seu PIN.'));
 }
 
 async function savePin() {
@@ -566,7 +719,10 @@ async function savePin() {
     const pinHash = await hashPin(pin);
     const updatedConfig = { ...state.config, pinHash };
     const geminiKey = getGeminiKey() || '';
-    if (geminiKey) updatedConfig.encryptedSecrets = await encryptSecrets(pin, { pat: '', geminiKey });
+    const openRouterKey = getOpenRouterKey() || '';
+    if (geminiKey || openRouterKey) {
+      updatedConfig.encryptedSecrets = await encryptSecrets(pin, { pat: '', geminiKey, openRouterKey });
+    }
 
     const result = await dispatch('update-config', updatedConfig);
     if (result.success) {
@@ -700,7 +856,7 @@ function render() {
   section.append(buildAccordion('categorias', 'Categorias', buildCategoriesContent));
   section.append(buildAccordion('orcamento', 'Orçamento', buildBudgetContent));
   section.append(buildAccordion('pagamento', 'Métodos de Pagamento', buildPaymentContent));
-  section.append(buildAccordion('gemini', 'Gemini AI', buildGeminiContent));
+  section.append(buildAccordion('gemini', 'Inteligência artificial (Gemini / OpenRouter)', buildGeminiContent));
   section.append(buildAccordion('banco', 'Banco de Dados', buildDatabaseContent));
 }
 

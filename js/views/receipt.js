@@ -2,7 +2,7 @@ import { getConfig, getCategories, getPaymentMethods, getTransactions, putCacheE
 import { dispatch, uploadReceiptImage } from '../modules/github-api.js';
 import { formatCurrency } from '../modules/format.js';
 import { getState, setState, addPendingSync, resolvePendingSync } from '../modules/state.js';
-import { isGeminiConfigured, analyzeReceipt, analyzeStatement, compressImage } from '../modules/gemini.js';
+import { isGeminiConfigured, getAiProvider, analyzeReceipt, analyzeStatement, compressImage } from '../modules/gemini.js';
 import { showAlert, showConfirm, navigate } from '../app.js';
 import { recordSalaryChange } from './salary-history.js';
 
@@ -65,12 +65,13 @@ function render() {
 }
 
 function renderNotConfigured(section) {
+  const prov = getAiProvider() === 'openrouter' ? 'OpenRouter' : 'Gemini';
   const card = el('div', { className: 'card', style: { textAlign: 'center', padding: 'var(--sp-10)' } });
   card.append(
     el('div', { style: { fontSize: '48px', marginBottom: 'var(--sp-4)' } }, '🤖'),
-    el('h3', { style: { marginBottom: 'var(--sp-4)' } }, 'Gemini AI não configurado'),
+    el('h3', { style: { marginBottom: 'var(--sp-4)' } }, 'IA não configurada'),
     el('p', { style: { color: 'var(--text-secondary)', marginBottom: 'var(--sp-6)' } },
-      'Configure sua chave da API Gemini nas Configurações para usar o scanner de comprovantes.'
+      `Configure a chave e o modelo (${prov}) em Configurações → Inteligência artificial para usar o scanner.`
     ),
     el('button', {
       className: 'btn btn-primary',

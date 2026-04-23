@@ -176,7 +176,9 @@ async function updateConfig(data) {
   const configMap = {
     pinHash: 'pin_hash',
     encryptedSecrets: 'encrypted_secrets',
-    geminiModel: 'gemini_model'
+    geminiModel: 'gemini_model',
+    aiProvider: 'ai_provider',
+    openRouterModel: 'openrouter_model'
   };
 
   for (const [jsKey, dbKey] of Object.entries(configMap)) {
